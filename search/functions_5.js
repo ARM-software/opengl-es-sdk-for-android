@@ -1,0 +1,19 @@
+var searchData=
+[
+  ['fast32_5fhash_5f3d',['FAST32_hash_3D',['../update_8cs.html#a58ce4ada2d2ffa57067e3d9a8d09c7c5',1,'FAST32_hash_3D(vec3 gridcell, vec3 v2_mask, out vec4 hash_0, out vec4 hash_1, out vec4 hash_2):&#160;update.cs'],['../update_8cs.html#a1f1f7b52fdbdbf05650b1bc0cbc6e824',1,'FAST32_hash_3D(vec3 gridcell, vec3 v1_mask, vec3 v2_mask, out vec4 hash_0, out vec4 hash_1, out vec4 hash_2):&#160;update.cs']]],
+  ['fft',['FFT',['../class_g_l_f_f_t_1_1_f_f_t.html#a6ce0d60d078eae710d52d3a15f3d66b4',1,'GLFFT::FFT::FFT(unsigned Nx, unsigned Ny, Type type, Direction direction, Target input_target, Target output_target, std::shared_ptr&lt; ProgramCache &gt; cache, const FFTOptions &amp;options, const FFTWisdom &amp;wisdom=FFTWisdom())'],['../class_g_l_f_f_t_1_1_f_f_t.html#afe931f5eb3a3bd9da147b31067065000',1,'GLFFT::FFT::FFT(unsigned Nx, unsigned Ny, unsigned radix, unsigned p, Mode mode, Target input_target, Target output_target, std::shared_ptr&lt; ProgramCache &gt; cache, const FFTOptions &amp;options)']]],
+  ['fftwater',['FFTWater',['../class_f_f_t_water.html#ad4ce2b95e5a2fd9b038e1a3d20a28058',1,'FFTWater']]],
+  ['fill_5fcube_5fside',['fill_cube_side',['../tessellation_8cpp.html#ae8e53b40f59f0d92e144c224cb2b2893',1,'tessellation.cpp']]],
+  ['fillcubecolorsarray',['fillCubeColorsArray',['../tutorials_2_instancing_2jni_2_native_8cpp.html#afc1d2dd6737973baa14ae1f749616de1',1,'Native.cpp']]],
+  ['fillvertexcolorsarray',['fillVertexColorsArray',['../tutorials_2_boids_2jni_2_native_8cpp.html#a5abe61d83450e9c290a975b13c2f2ebb',1,'fillVertexColorsArray():&#160;Native.cpp'],['../tutorials_2_instancing_2jni_2_native_8cpp.html#a5abe61d83450e9c290a975b13c2f2ebb',1,'fillVertexColorsArray():&#160;Native.cpp']]],
+  ['find_5fcost',['find_cost',['../glfft_8cpp.html#a1e9f264b61d3b39491c595c4bc53833a',1,'glfft.cpp']]],
+  ['find_5foptimal_5foptions',['find_optimal_options',['../class_g_l_f_f_t_1_1_f_f_t_wisdom.html#a5eb06fb1fe301c9fa578be8ff53a8304',1,'GLFFT::FFTWisdom']]],
+  ['find_5foptimal_5foptions_5for_5fdefault',['find_optimal_options_or_default',['../class_g_l_f_f_t_1_1_f_f_t_wisdom.html#ae6ea1c213473213ea4d0c8adbd4ec975',1,'GLFFT::FFTWisdom']]],
+  ['find_5fprogram',['find_program',['../class_g_l_f_f_t_1_1_program_cache.html#a4bf389668795ac67591724f1eae9f23c',1,'GLFFT::ProgramCache']]],
+  ['findconfig',['findConfig',['../class_mali_s_d_k_1_1_e_g_l_runtime.html#ae85d992d43904fe7cb02f029715404aa',1,'MaliSDK::EGLRuntime::findConfig()'],['../_thread_sync_8h.html#a82799781691845ef6782fda5dc5200aa',1,'findConfig():&#160;ThreadSync.h']]],
+  ['findteapotdimensions',['findTeapotDimensions',['../_multisampled_f_b_o_8cpp.html#a2746d0de5b445274506844d4d02bb3cd',1,'MultisampledFBO.cpp']]],
+  ['frand',['frand',['../noise_8cpp.html#a5459f6b6b39f9a6b80de7f17c3777ee2',1,'frand():&#160;noise.cpp'],['../noise_8h.html#a5459f6b6b39f9a6b80de7f17c3777ee2',1,'frand():&#160;noise.cpp']]],
+  ['free_5fapp',['free_app',['../_compute_particles_2jni_2app_8cpp.html#a33ab5ce8ec276144a8dda75d3631fa29',1,'free_app():&#160;app.cpp'],['../_compute_particles_2jni_2app_8h.html#a33ab5ce8ec276144a8dda75d3631fa29',1,'free_app():&#160;app.cpp'],['../_translucency_2jni_2app_8cpp.html#a33ab5ce8ec276144a8dda75d3631fa29',1,'free_app():&#160;app.cpp'],['../_translucency_2jni_2app_8h.html#a33ab5ce8ec276144a8dda75d3631fa29',1,'free_app():&#160;app.cpp']]],
+  ['frustum',['Frustum',['../class_frustum.html#a172ae3492592e3ac891642299d628494',1,'Frustum::Frustum()'],['../class_frustum.html#a3f1eea4e9614a64a6aeeff0025d41dab',1,'Frustum::Frustum(const mat4 &amp;view_projection)']]],
+  ['frustum_5ftest',['frustum_test',['../hiz__cull_8cs.html#a032035c9c77676ce93af43c92ca2f560',1,'frustum_test(vec3 center, float radius):&#160;hiz_cull.cs'],['../hiz__cull__no__lod_8cs.html#a032035c9c77676ce93af43c92ca2f560',1,'frustum_test(vec3 center, float radius):&#160;hiz_cull_no_lod.cs']]]
+];

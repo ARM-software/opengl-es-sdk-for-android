@@ -1,0 +1,5 @@
+var classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1foveatedrendering_1_1_tutorial_view_1_1_context_factory =
+[
+    [ "createContext", "classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1foveatedrendering_1_1_tutorial_view_1_1_context_factory.html#af76ae7dca919ec7df069dfb329ada978", null ],
+    [ "destroyContext", "classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1foveatedrendering_1_1_tutorial_view_1_1_context_factory.html#adbf36c1f9dedd2814d7cf0c793b0eeef", null ]
+];

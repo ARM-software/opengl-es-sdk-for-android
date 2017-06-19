@@ -1,0 +1,4 @@
+var classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1metaballs_1_1_metaballs_view_1_1_config_chooser =
+[
+    [ "chooseConfig", "classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1metaballs_1_1_metaballs_view_1_1_config_chooser.html#acdfbec11f61adcbaa304b325eb02cf44", null ]
+];

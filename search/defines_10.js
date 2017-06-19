@@ -1,0 +1,26 @@
+var searchData=
+[
+  ['shader_5fpath',['SHADER_PATH',['../_procedural_geometry_2jni_2main_8cpp.html#ad9dd4260f37198848ddb698987b1fbed',1,'SHADER_PATH():&#160;main.cpp'],['../_tessellation_2jni_2main_8cpp.html#a24b66926bcfbaa849db87c94c26c73a4',1,'SHADER_PATH():&#160;main.cpp']]],
+  ['sides_5fin_5fa_5fcube',['SIDES_IN_A_CUBE',['../tessellation_8cpp.html#aa0d9b6c16e6c9c8c34584aea9ad6987f',1,'tessellation.cpp']]],
+  ['size_5fx',['SIZE_X',['../ocean_8cpp.html#a19f5e4653e05a89a22bc4d2962ddc742',1,'ocean.cpp']]],
+  ['size_5fz',['SIZE_Z',['../ocean_8cpp.html#a05e725afcb667b4bd38bf61fd3722029',1,'ocean.cpp']]],
+  ['sphere_5finstances',['SPHERE_INSTANCES',['../scene_8cpp.html#add3a707563d2c1a6721d5b36f6bf24bb',1,'scene.cpp']]],
+  ['sphere_5finstances_5fx',['SPHERE_INSTANCES_X',['../scene_8cpp.html#aa96b61e7534d50a50bade764988876f6',1,'scene.cpp']]],
+  ['sphere_5finstances_5fy',['SPHERE_INSTANCES_Y',['../scene_8cpp.html#aec30484608a4c3d6a2d3dc7b5c41d0d3',1,'scene.cpp']]],
+  ['sphere_5finstances_5fz',['SPHERE_INSTANCES_Z',['../scene_8cpp.html#adf179128839063f13da82d19cf2fafd6',1,'scene.cpp']]],
+  ['sphere_5flods',['SPHERE_LODS',['../culling_8hpp.html#a030178e166f5b9c627138dc62b705857',1,'culling.hpp']]],
+  ['sphere_5fradius',['SPHERE_RADIUS',['../scene_8cpp.html#a06cbc978d899ab7e6f6dfc6c6b54da2e',1,'scene.cpp']]],
+  ['sphere_5fvert_5fper_5fcirc_5flod0',['SPHERE_VERT_PER_CIRC_LOD0',['../scene_8cpp.html#a7f3973e99a6ca632158d08c06484f2da',1,'scene.cpp']]],
+  ['sphere_5fvert_5fper_5fcirc_5flod1',['SPHERE_VERT_PER_CIRC_LOD1',['../scene_8cpp.html#a6ed8b0bce833ed22d3106a2bacc2d4c5',1,'scene.cpp']]],
+  ['sphere_5fvert_5fper_5fcirc_5flod2',['SPHERE_VERT_PER_CIRC_LOD2',['../scene_8cpp.html#a8cee422a9143b944c2c46d45ef10d287',1,'scene.cpp']]],
+  ['sphere_5fvert_5fper_5fcirc_5flod3',['SPHERE_VERT_PER_CIRC_LOD3',['../scene_8cpp.html#a3fe485611b99dd0e2dcb64364d512e1e',1,'scene.cpp']]],
+  ['spot_5flight_5fangle_5fin_5fdegrees',['SPOT_LIGHT_ANGLE_IN_DEGREES',['../_projected_lights_8h.html#adb8c57e03253b17a54fe4d88ac4ef139',1,'ProjectedLights.h']]],
+  ['spot_5flight_5fcube_5ffragment_5fshader_5ffile_5fname',['SPOT_LIGHT_CUBE_FRAGMENT_SHADER_FILE_NAME',['../_shadow_mapping_8h.html#a0c1a85395e580b7f1a0066fe0df79b66',1,'ShadowMapping.h']]],
+  ['spot_5flight_5fcube_5fvertex_5fshader_5ffile_5fname',['SPOT_LIGHT_CUBE_VERTEX_SHADER_FILE_NAME',['../_shadow_mapping_8h.html#a06661650142b00dbb3f25559cbb19f24',1,'ShadowMapping.h']]],
+  ['spot_5flight_5ftranslation_5fradius',['SPOT_LIGHT_TRANSLATION_RADIUS',['../_projected_lights_8h.html#a9194ff982aa795cad37fb21d65415668',1,'ProjectedLights.h']]],
+  ['squareness_5f1',['SQUARENESS_1',['../_occlusion_queries_2jni_2_native_8h.html#a2e7ebe0cfaceef82c4daddbed66e3808',1,'Native.h']]],
+  ['squareness_5f2',['SQUARENESS_2',['../_occlusion_queries_2jni_2_native_8h.html#aa9f87ea64ec020859b9fcccaa79770b6',1,'Native.h']]],
+  ['stb_5fimage_5fimplementation',['STB_IMAGE_IMPLEMENTATION',['../_procedural_geometry_2jni_2loader_8cpp.html#a18372412ad2fc3ce1e3240b3cf0efe78',1,'STB_IMAGE_IMPLEMENTATION():&#160;loader.cpp'],['../_tessellation_2jni_2loader_8cpp.html#a18372412ad2fc3ce1e3240b3cf0efe78',1,'STB_IMAGE_IMPLEMENTATION():&#160;loader.cpp']]],
+  ['stbi_5fversion',['STBI_VERSION',['../_procedural_geometry_2jni_2stb__image_8h.html#aed6cd14a3bf678808c4c179e808866aa',1,'STBI_VERSION():&#160;stb_image.h'],['../_tessellation_2jni_2stb__image_8h.html#aed6cd14a3bf678808c4c179e808866aa',1,'STBI_VERSION():&#160;stb_image.h']]],
+  ['stbidef',['STBIDEF',['../_procedural_geometry_2jni_2stb__image_8h.html#a2d9ec9850cd12aefe7641b456266a4c2',1,'STBIDEF():&#160;stb_image.h'],['../_tessellation_2jni_2stb__image_8h.html#a2d9ec9850cd12aefe7641b456266a4c2',1,'STBIDEF():&#160;stb_image.h']]]
+];

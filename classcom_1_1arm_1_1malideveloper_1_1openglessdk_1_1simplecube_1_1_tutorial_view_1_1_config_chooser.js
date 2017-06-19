@@ -1,0 +1,4 @@
+var classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1simplecube_1_1_tutorial_view_1_1_config_chooser =
+[
+    [ "chooseConfig", "classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1simplecube_1_1_tutorial_view_1_1_config_chooser.html#ad9a66fe8b3ba9c31f483545054554e51", null ]
+];

@@ -1,0 +1,27 @@
+var tutorials_2_lighting_2jni_2_native_8cpp =
+[
+    [ "LOG_TAG", "tutorials_2_lighting_2jni_2_native_8cpp.html#a7ce0df38eb467e59f209470c8f5ac4e6", null ],
+    [ "LOGE", "tutorials_2_lighting_2jni_2_native_8cpp.html#ae02538a80ad5fc009caec73487d11a8d", null ],
+    [ "LOGI", "tutorials_2_lighting_2jni_2_native_8cpp.html#a5512e59d578a380a441a70256af997d0", null ],
+    [ "createProgram", "tutorials_2_lighting_2jni_2_native_8cpp.html#a54ec161f64aeb5b3cedd002a368f0e15", null ],
+    [ "Java_com_arm_malideveloper_openglessdk_lighting_NativeLibrary_init", "tutorials_2_lighting_2jni_2_native_8cpp.html#a2bb51c6ef58312e3f9c0b561a497fb65", null ],
+    [ "Java_com_arm_malideveloper_openglessdk_lighting_NativeLibrary_step", "tutorials_2_lighting_2jni_2_native_8cpp.html#a4267cf63ebf4d48add5d81b871bc317f", null ],
+    [ "loadShader", "tutorials_2_lighting_2jni_2_native_8cpp.html#aceb8b27cd7d369c524624ede81a1299e", null ],
+    [ "renderFrame", "tutorials_2_lighting_2jni_2_native_8cpp.html#a00df6d86f86c2004b5c421980456d3f7", null ],
+    [ "setupGraphics", "tutorials_2_lighting_2jni_2_native_8cpp.html#ac25bb04259c7ca05b3f15cf343eabed9", null ],
+    [ "angle", "tutorials_2_lighting_2jni_2_native_8cpp.html#ab8ef1bf8a70cc07c6d55823c390a7e76", null ],
+    [ "colour", "tutorials_2_lighting_2jni_2_native_8cpp.html#a315513b25fb7caa676de83aa6794d4a2", null ],
+    [ "glFragmentShader", "tutorials_2_lighting_2jni_2_native_8cpp.html#a19ae499a471bac9a17d303bf37311457", null ],
+    [ "glVertexShader", "tutorials_2_lighting_2jni_2_native_8cpp.html#a6997075b95e254f5d6b3f99a7a73d8af", null ],
+    [ "indices", "tutorials_2_lighting_2jni_2_native_8cpp.html#a8912a83ba49bfe512f6e65756e380f47", null ],
+    [ "lightingProgram", "tutorials_2_lighting_2jni_2_native_8cpp.html#afbb194c6ac35a64ae6589ffecd92f6c3", null ],
+    [ "modelViewLocation", "tutorials_2_lighting_2jni_2_native_8cpp.html#ae185c1db995cde0f9bb86eccd6bb0f51", null ],
+    [ "modelViewMatrix", "tutorials_2_lighting_2jni_2_native_8cpp.html#a0fc38eb2bf36959002aa2fc71cf6bc44", null ],
+    [ "normals", "tutorials_2_lighting_2jni_2_native_8cpp.html#ad42b87bfb03ed9e4b1c35311462cac74", null ],
+    [ "projectionLocation", "tutorials_2_lighting_2jni_2_native_8cpp.html#afbb3742f444abb100aa2b9743b5a86aa", null ],
+    [ "projectionMatrix", "tutorials_2_lighting_2jni_2_native_8cpp.html#ac9131354de4b011211d3a2a2c796053d", null ],
+    [ "vertexColourLocation", "tutorials_2_lighting_2jni_2_native_8cpp.html#a7d1706924ffb7ffcda7ebb0c5bc7ff8d", null ],
+    [ "vertexLocation", "tutorials_2_lighting_2jni_2_native_8cpp.html#a83dd2521bc5a3e4938bf116aaa9b1328", null ],
+    [ "vertexNormalLocation", "tutorials_2_lighting_2jni_2_native_8cpp.html#accc2e61648e59c8edd75f96a09128793", null ],
+    [ "verticies", "tutorials_2_lighting_2jni_2_native_8cpp.html#ab52e9e7338b8be963a3fe01d20c4ee7b", null ]
+];
