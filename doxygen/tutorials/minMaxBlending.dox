@@ -1,0 +1,114 @@
+/** \page minMaxBlending Min Max Blending
+
+\brief The application demonstrates behaviour of blending in GL_MIN and GL_MAX mode in OpenGL ES 3.0.
+
+\section minMaxBlendingIntroduction Introduction
+
+It's assumed that you have read and understood all of the mechanisms described in \ref assetLoading,\ref simpleTriangle and \ref textureCube.
+
+\section minMaxBlendingOverview Overview
+
+\image html MinMaxBlending_android.png "The 3D texture presenting a magnetic resonance of a human head"
+
+The application demonstrates behaviour of blending in GL_MIN and GL_MAX mode. It renders a 3D texture which consists of a series of greyscaled images obtained from magnetic resonance of a human head. The images are placed one after another in Z axis, so when blending is enabled they imitate a 3D model of the head.
+
+Texture coordinates are then rotated, so viewers can see the model from different perspectives and after each 5 seconds, blending equation is changed. Since U/V/W coordinates are taken from interval <0.0, 1.0> and they are clamped to edge, there might occur some distortions for specific angles of rotation. That is why, the application adds a few blank layers behind and in the front of the original images. Now, if rotated coordinates exceed the interval, only the additional edge layers are repeated creating a noiseless background.
+
+Because images contain a lot of black color, regular min blending would result in having black square on the screen. Hence, there is a threshold applied in fragment shader which prevents rendering fragments that are not bright enough. Additionally, for both types of blending, contrast of output luminance had to be modified to see more details.
+
+To use your own input images, it's check their format and adjust the values of the min blending threshold, luminance of additional edge layers and contrast modifier.
+
+\section minMaxBlendingProgramObject Program Object
+
+In the application there is only one program object used. It's responsible for rendering a 3D texture on screen, rotate it and discard fragments that are not bright enough in case of a *min* blending option is used. The idea of generating and using program objects, attaching shaders to program object and compiling them should be already well known to the reader. If it isn't, please refer to previous tutorials. Please look into shaders we are using.
+
+Vertex Shader Code
+
+\snippet samples/tutorials/MinMaxBlending/assets/Min_Max_Blending_shader.vert Vertex shader code
+
+The vertex shader is responsible for rotating the texture, which in our case means, updating the UVW coordinates for a specific layer of a 3D texture based on the rotation vector value.
+
+Fragment Shader Code
+
+\snippet samples/tutorials/MinMaxBlending/assets/Min_Max_Blending_shader.frag Fragment shader code
+
+The fragment shader is responsible for sampling the 3D texture and when the *min* blending mode is used, discarding fragments that are not bright enough.
+
+\section minMaxBlending3DTexture 3D Textures
+
+A 3 dimensional texture is represented by a bunch of 2D textures. To create a 3D texture in OpenGL ES 3.0, you need to:
+
+ -# Create a texture object ID;
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Generate texture ID
+
+ -# Bind it to the *GL_TEXTURE_3D* target;
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Bind texture object
+
+ -# Initialize texture storage;
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Initialize texture storage
+
+ -# Set the texture object parameters;
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Set texture object parameters
+
+ -# Fill each of the texture levels with data (the above function should be called for each texture layer).
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Fill texture layer with data
+
+
+Once all of the steps described above are completed, we can use the texture object as an input for the program object 3D uniform sampler. We are using only one sampler object and a default texture unit, so the steps described below are not necessary, but we will issue them anyway, just to show you the mechanism.
+
+First of all, we are querying for locations of a 3D sampler.
+
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Get 3D sampler uniform location
+
+Please note that the second argument should correspond to the uniform name that is used in the shader.
+
+The next step is to check whether the retrieved location is valid. If the returned value is -1, the uniform is considered inactive and any attempt to set the uniform value will be ignored.
+
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Verify 3D sampler uniform location value
+
+Once we are sure, the uniform has been found, we can set its value. It's achieved by some basic steps.
+
+Set active texture unit (*GL_TEXTURE0* is active by default, but we want to call it anyway to show you the mechanism).
+
+\code 
+    GL_CHECK(glActiveTexture(GL_TEXTURE0));
+\endcode
+
+Then, we need to bind a texture object to *GL_TEXTURE_3D* target.
+
+\code 
+    GL_CHECK(glBindTexture(GL_TEXTURE_3D, textureID));
+\endcode
+
+And now, by calling the function shown below, the texture object named with *textureID* will be used as an input for the program object.
+\code 
+    GL_CHECK(glUniform1i(textureSamplerLocation, 0));
+\endcode
+
+In the *glUniform1i()* call the second argument corresponds to the 0 in the *GL_TEXTURE0* texture unit. If we would like to use 3D texture object which is bound to *GL_TEXTURE_3D* target at *GL_TEXTURE1* texture unit, then the second argument in the *glUniform1i()* call should be equal to 1.
+
+To draw a 3D texture on screen, we use *instanced drawing* technique to render each texture layer separately.
+
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Draw 3D texture
+
+\section minMaxBlendingBlending Blending
+
+The main idea of the application is to show the difference between *GL_MIN* and *GL_MAX* blend equations. Just to clarify: the specific blend equation specifies how a pixel color is determined. To be more precise: if a pixel does already have a color determined (it always has) and we want to apply a new color to it, then we can specify how the two colors will be blend: we can simply add the two colors, subtract them or we can use minimum or maximum values of the two (which is our case).
+
+First of all, we need to enable blending. Without that, the new color will replace the old one and no blending will be issued.
+
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Enable blending
+
+Then, we can change the blend equation by calling
+
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Set new blend equation : GL_MIN
+
+or
+
+\snippet samples/tutorials/MinMaxBlending/jni/Native.cpp Set new blend equation : GL_MAX
+
+The result of the specific blend equations are shown below.
+
+\image html MinMaxBlending_result.png "The result of different blend equations: GL_MAX (on the left) and GL_MIN (on the right)."
+
+*/

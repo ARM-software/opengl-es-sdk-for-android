@@ -1,0 +1,126 @@
+/**
+\page advancedSamples Advanced OpenGL ES Samples
+\brief A collection of advanced samples using the OpenGL ES API.
+
+The source for these samples can be found in the
+\if windows
+*samples\\advanced_samples*
+\endif
+\if linux
+*samples/advanced_samples*
+\endif
+folder of the SDK.
+
+\section advancedSamplesAntiAlias AntiAlias
+
+\image html 4_antialias.png "AntiAlias"
+
+This shows how to select anti-aliasing levels and the effect of different levels of anti-aliasing:
+ -  a shader renders a simple triangle
+ -  some text is written to the screen
+ -  the FPS count is output on the terminal window.
+
+\note
+ -  With only approximately 2% performance drop, 4x anti-aliasing is nearly free on Mali hardware and is adequate for most applications.
+ -  Significantly higher quality results from 16x anti-aliasing, but it has over 50% drop in performance.
+ -  Because of the benefit with almost no cost, ARM recommends using 4x anti-aliasing rather than the default of no anti-aliasing.
+
+\section advancedSamplesCube Cube
+
+\image html Cube.png "Cube"
+
+This displays a spinning cube on the screen.
+The sample application uses matrix functions, renders fonts, and writes the FPS value to the terminal.
+
+\section advancedSamplesEGLPreserve EGLPreserve
+
+\image html EGLPreserve.png "EGLPreserve"
+
+This shows the change in behavior of `eglSwapBuffers` is caused by changing the `EGL_SWAP_BEHAVIOR` attribute to `EGL_BUFFER_PRESERVED`.
+
+\section advancedSamplesETCAtlasAlpha ETCAtlasAlpha
+
+\image html ETCAtlasAlpha.png "ETCAtlasAlpha"
+
+This uses an alpha channel that was converted to a visible greyscale image. The alpha image is concatenated onto the original texture.
+
+\section advancedSamplesETCCompressedAlpha ETCCompressedAlpha
+
+\image html ETCCompressedAlpha.png "ETCCompressedAlpha"
+
+This uses an alpha channel that is delivered as a second packed texture.
+
+\section advancedSamplesETCUncompressedAlpha ETCUncompressedAlpha
+
+\image html ETCUncompressedAlpha.png "ETCUncompressedAlpha"
+
+This uses an alpha channel that is provided as a raw 8-bit single channel image.
+
+Uncompressed alpha takes up more space than compressed alpha, but is more flexible and enables alpha and color information to be mixed.
+
+\section advancedSamplesETCMipmap ETCMipmap
+
+\image html ETCMipmap.png "ETCMipmap"
+
+This shows how to load and display ETC format textures with Mipmaps.
+
+\section advancedSamplesFrameBufferObject FrameBufferObject
+
+\image html FrameBufferObject.png "FrameBufferObject"
+
+This shows the render-to-texture feature of OpenGL ES 2.0. A colored spinning cube is rendered to a frame buffer,
+which is then attached as a texture on the faces of another spinning cube.
+
+\section advancedSamplesListEGLConfigs ListEGLConfigs
+
+This shows how to list the available EGLConfig.
+
+\section advancedSamplesRotozoom RotoZoom
+
+\image html RotoZoom.png "RotoZoom"
+
+This shows how to implement a classic demo effect by rotating and zooming a texture. It shows how to increase the speed
+of the effect by moving the work from the fragment shader to the vertex shader and CPU.
+
+\section advancedSamplesTemplate Template
+
+\image html Template.png "Template"
+
+This is an empty template that you can use to start developing a new application.
+
+The code is structured to contain everything that is required to compile and run, but nothing is rendered.
+
+\section advancedSamplesTriangle Triangle
+
+\image html Triangle.png "Triangle"
+
+This shows how to draw a simple colored triangle on the screen using a programmable shader.
+
+\section advancedSamplesRenderToTextureJava RenderToTextureJava
+
+\image html RenderToTextureJava.png "RenderToTextureJava"
+
+This shows how achieve a rendering to a texture effect using only the Java OpenGL ES mappings.
+The sample renders a spinning cube to a texture and then uses that texture on another spinning cube.
+
+\section advancedSamplesSpinningCubeJava SpinningCubeJava
+
+\image html SpinningCubeJava.png "SpinningCubeJava"
+
+This shows how render a spinning cube using only the Java OpenGL ES mappings.
+
+\section advancedSamplesTemplateJava TemplateJava
+
+\image html TemplateJava.png "TemplateJava"
+
+This is an empty template that you can use to start developing a new application only the Java OpenGL ES mappings.
+
+\section advancedSamplesTerrain Terrain
+
+\image html terrain.png "Terrain"
+
+This sample will show you how to efficiently implement geometry clipmaps using OpenGL ES 3.0.
+The sample makes use of 2D texture arrays as well as instancing to efficiently render an infinitely large terrain.
+The terrain is asynchronously uploaded to the GPU using pixel buffer objects.
+
+*/

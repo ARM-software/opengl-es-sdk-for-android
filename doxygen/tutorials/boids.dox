@@ -1,0 +1,166 @@
+/** \page boids Boids
+
+\brief Demonstration of Transform Feedback functionality in OpenGL ES 3.0.
+
+\section boidsIntroduction Introduction
+
+It is assumed that you have read and understood all of the mechanisms described in \ref assetLoading and \ref simpleTriangle.
+
+\section boidsOverview Overview
+
+\image html Boids_android.png "The application displays 30 spheres: 1 leader and 29 followers."
+
+Demonstration of Transform Feedback functionality in OpenGL ES 3.0.
+
+Demonstrates the use of uniform buffers. The application displays 30 spheres on the screen. Locations and velocities of the spheres in 3D space are regularly updated to simulate bird flocking. There is 1 leader sphere (red) and 29 followers (green). The leader follows a set looping path and the followers 'flock' in relation to the leader and the other followers. The calculation of the locations of the boids is done on the GPU each frame using a vertex shader prior to rendering the scene.
+
+All of the data for the boids stays in GPU memory (by using buffers) and is not transferred back to the CPU. Transform feedback buffers are used to store the movement information output from the vertex shader, and this data is then used as the input data on the next pass. The same data is used when rendering the scene.
+
+\section boidsRenderGeometry Render a Geometry
+
+To render any kind of geometry: quad, cube, sphere or any kind of more complicated model, the best way is to render triangles that make up the requested shape. So the very first thing we need to do is to generate the coordinates of those triangles. Please remember that it is very important to follow one order (clockwise or counter clockwise) while calculating the coordinates, otherwise (if you mix them), OpenGL ES may have some trouble with detecting front and back faces. We will use *counter clockwise* order as this is default for OpenGL ES.
+
+The point coordinates of triangles which make up the geometry we want to render (in our case that would be a sphere) are generated within the following function
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Generate geometry
+
+For more details please look into the implementation.
+
+The next step is to transfer the generated data into a buffer object and use it whilst rendering. But let's describe the problem in basic steps.
+
+Generate a buffer object.
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Generate buffer objects
+
+In the application we will need more buffer objects, however at this point we are interested in only one, so you can use the below function instead.
+
+\code 
+GL_CHECK(glGenbuffers(1, &sphereCoordinatesBufferObjectId));
+\endcode
+
+Once the buffer object ID is generated, we can use that object to store the coordinates data.
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Bind coordinates buffer object
+\snippet samples/tutorials/Boids/jni/Native.cpp Set data for coordinates buffer object
+
+The next step is to associate the input data for a program object with a specific array buffer object and then enable the vertex attrib array. This can be done as follows.
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Enable VAA for sphere coordinates
+
+We will soon explain what value should be used for the *positionLocation* argument.
+
+In the OpenGL ES 3.0 there is no rendering without program objects. First of all, we need to:
+
+ -# create program object ID,
+\snippet samples/tutorials/Boids/jni/Native.cpp Create program object
+
+ -# create shader objects' IDs (should be called twice for *shaderType* equal to *GL_FRAGMENT_SHADER* and *GL_VERTEX_SHADER*),
+\snippet samples/tutorials/Boids/jni/Shader.cpp Create shader object
+
+ -# set shader source, 
+\snippet samples/tutorials/Boids/jni/Shader.cpp Load shader source
+\snippet samples/tutorials/Boids/jni/Shader.cpp Attach shader source
+
+ -# compile shader (it is always a good idea to check whether the compilation succeeded: *GL_COMPILE_STATUS* set to *GL_TRUE*,
+\snippet samples/tutorials/Boids/jni/Shader.cpp Compile a shader
+\snippet samples/tutorials/Boids/jni/Shader.cpp Get compilation status
+
+ -# attach shaders to program object,
+\snippet samples/tutorials/Boids/jni/Native.cpp Attach shaders to program object
+
+ -# link program object,
+\snippet samples/tutorials/Boids/jni/Native.cpp Link program object
+
+ -# use program.
+\snippet samples/tutorials/Boids/jni/Native.cpp Select active program object
+
+
+And now we are ready to tell you what the *positionLocation* (mentioned above) represents. This is a location of an attribute in the program object. We can retrieve this value by calling
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Get attribute location: attributePosition
+
+The second argument, *attributePosition*, is the same name as used in the vertex shader. Please refer to the shader sources.
+
+Vertex shader source:
+\snippet samples/tutorials/Boids/assets/vertex_shader_source.vert Vertex shader source
+
+Fragment shader source:
+\snippet samples/tutorials/Boids/assets/fragment_shader_source.frag Fragment shader source
+
+In the vertex shader, there is one more attribute used. You should now know how to set input data for it. There are also some uniforms used and we will now describe how to deal with them. First of all, we need to retrieve their locations.
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Get uniform locations
+
+Please note that it is always a good idea to verify whether the returned data is valid.
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Check if all uniforms, attributes and uniform blocks were found in vertex shader
+
+Then, if we want to set data for the uniforms, it is enough to call
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Set uniform values
+
+Finally, we are ready to issue the draw call. Normally, we would call
+
+\code
+GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, numberOfSphereTrianglePoints));
+\endcode
+
+However, in this case, we want to render multiple instances of the same object (30 spheres). This is why we need to call
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Draw spheres
+ 
+Please note that most of the functions mentioned above should be called only when the requested program object is active (*glUseProgram()* was called with an argument corresponding to the program object ID).
+
+After completing all the steps described above we will get 30 spheres drawn onto the screen: 1 red and 29 green. We are ready to move them a little bit.
+
+\section boidsTransformFeedback Transform Feedback
+
+The basic concept of the application is to simulate birds' flocking behaviour. There is one leader and some followers, all of them are trying to keep distance between the others. This is the idea, but how it is implemented?
+
+The leader moves on a constant trajectory. Its position is updated per each frame. The new positions for the followers are calculated based on the leader's position, but there are also the other spheres positions taken into account (so that the distance between them is not too small).
+
+We will now focus on the *Transform Feedback* mechanism rather than the algorithm itself. So let's start.
+
+Transform feedback is used for setting position and velocity for each of the spheres. You cannot read from and write to the same buffer object at the same time, so we use a ping-pong approach. During the first call, the pong buffer is used for reading and ping buffer for writing. During the second call, the ping buffer is used for reading and the pong buffer for writing.
+
+We have already created some buffer objects (please refer to \ref boidsRenderGeometry) and we will use them now. First of all, we will have two buffer objects, named with *ping* and *pong* prefixes. Only one of them would need to be initialized with the original data (starting positions and velocities), the second one should however be prepared to store the updated values.
+
+Set up buffer objects storage.
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Setup storage for buffer objects
+
+Fill one of buffer objects with data.
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Fill position and velocity buffer with data
+
+We want to store the updated values for sphere locations in space and their velocities. Please look into the vertex shader code that is used for calculation. As you remember, a program object requires both vertex and fragment shaders to be attached. However in this situation we do not really need any fragment operations, so the *main()* function of the fragment shader is left empty. The whole algorithm is implemented in the vertex shader as shown below:
+
+\snippet samples/tutorials/Boids/assets/movement.vert Movement vertex shader source
+
+In the API, we need to declare the output variables that will store the results from the *Transform Feedback* operations.
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Array of varyings' names which are used by shader for transform feedback
+\snippet samples/tutorials/Boids/jni/Native.cpp Specify transform feedback varyings
+
+Please note that the *glTransformFeedbackVaryings()* function has no effect unless *glLinkProgram()* is called. So please be sure that the above function is followed by 
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Link movement program object
+
+OK, we are prepared for the actual rendering. Before a single frame is rendered, we need to set up the proper input and output data storage (as we cannot read from and write to the same buffer object, we are using the ping-pong technique described above).
+
+Set output buffer object
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Set output buffer
+
+Set input buffer object 
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Set input buffer
+
+Please be sure that the buffer object filled with the original data is used as an input when the first frame is being rendered.
+
+We are now ready to issue the transform feedback.
+
+\snippet samples/tutorials/Boids/jni/Native.cpp Use the transform feedback
+
+Now we are able to use the updated data as an input for the program object responsible for rendering the spheres.
+*/

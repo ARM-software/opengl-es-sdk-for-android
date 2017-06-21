@@ -1,0 +1,217 @@
+/** \page projectedLights Projected Lights
+
+\brief Projected Lights effect using OpenGL ES 3.0.
+
+\section projectedLightsIntroduction Introduction
+
+This tutorial assumes that you already have basic OpenGL ES knowledge, and have read and understood the \ref normalMapping, \ref lighting and \ref textureCube tutorials.
+
+\section projectedLightsOverview Overview
+
+\image html ProjectedLights.png "Projected Lights effect: the direction of the projected lights changes during rendering."
+
+The application shows the projected lights effect. There is a spot light effect adjusted to display the texture instead of the normal light colour. There is also a shadow map technique used to make the scene more realistic by applying some shadows.
+
+The projected lights effect is implemented in two basic steps, described below:
+- Calculating the shadow map.
+ - The scene is rendered from spot light's point of view.
+ - The result is stored in the depth texture, which is called a *shadow map*.
+ - The shadow map will be used in next steps to verify whether a fragment should be lit by the spot light or should be obscured by shadow.
+- Scene rendering.
+ - The scene (which consists of a plane, on top of which is placed a single cube) is rendered from camera's point of view.
+ - Directional lighting is implemented to accentuate the 3D scene with the perspective.
+ - A spot light effect is implemented, however it is adjusted to display texture rather than a simple colour.
+ - Shadows are computed for the spot lighting (the result of the first step is now used).
+
+\section projectedLightsRenderGeometry Render geometry
+
+In the application we are rendering a horizontally located plane, on top of which we lay a single cube. Let us now focus on the geneating the geometry that will be rendered.
+
+\image html ProjectedLightsGeometry.png "Vertex coordinates of the geometry that will be rendered."
+
+First of all, we need to have the coordinates of vertices that make up a cubic or plane shape. Please note that there will also be lighting applied, which means that we will need normals as well.
+
+Geometry data will be stored and then used by objects that are generated with the following commands:
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Generate objects for rendering the geometry
+
+Geometry data is then generated and copied to specific buffer objects. For more details of how the coordinates of vertices are calculated, please refer to the implementation of those functions.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Setup geometry data
+
+In the program object, geometry vertices are referred to via the attributes, which is rather obvious.
+
+\snippet samples/tutorials/ProjectedLights/assets/render_scene_shader.vert Define attributes
+
+This is why we need to query for the attribute location within the program object responsible for scene rendering (note that all of the following functions need to be called for the active program object).
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Get attribute locations
+
+As you can see above, we are querying for the coordinates only, without specifying the cube or plane ones. This is because we are using only one program object to render both the plane and cube. Rendering specific geometry is achieved by using proper *Vertex Attrib Arrays*. Let's look at how it is implemented.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Set up Vertex Attrib Arrays
+
+And now, by calling *glBindVertexArray()* with the proper parameter, we can control which object: cube or plane is going to be rendered. Please refer to:
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Bind VAA for cube
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Bind VAA for plane
+
+The final thing is to make the actual draw call, which can be achieved by:
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Draw a cube
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Draw a plane
+
+\section projectedLightsShadowMapping Calculate a shadow map
+
+To calculate the shadow map we need to create a depth texture, which will be used to store the results. It is achieved in some basic steps, which you should already know, but let us describe this one more time.
+
+Generate texture object and bind it to the *GL_TEXTURE_2D* target.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Generate depth texture object
+
+Specify the texture storage data type.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Prepare depth texture storage
+
+We wanted our shadow to be more precise, this is why the depth texture resolution is bigger than normal scene size. Please refer to:
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Declare window resolution
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Declare shadow map texture resolution
+
+Set texture object parameters. The new thing here is to set *GL_TEXTURE_COMPARE_MODE* to the value of *GL_COMPARE_REF_TO_TEXTURE* which leads to r texture coordinate to be compared to the value in the currently bound depth texture.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Set depth texture object parameters
+
+The next thing we have to do to implement the *render to texture* mechanism is to:
+
+- Generate framebuffer object.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Generate and bind framebuffer object
+
+- Bind the depth texture object to the depth attachment of the framebuffer object.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Bind depth texture to framebuffer
+
+We have to use proper *view-projection matrices* while rendering. It is important to mention here that our spot light position is constant during the rendering process, but its direction is changing, which means the point at which the spot light is directed is updated per frame.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp  Set projection matrix from spot light point of view
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp  Update spot light direction
+
+There are different matrices used for rendering cube and plane form spot light point of view. Call *glUniformMatrix4fv()* to update the uniform values.
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp  Set uniform values for the spot light point of view: cube
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp  Set uniform values for the spot light point of view: plane
+
+Owing to the fact that the shadow map texture is bigger than the normal scene (as already mentioned above), we have to remember to adjust the viewport.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Set viewport for light perspective
+
+Our scene is rather simple: there is only one cube placed on the top of a plane. We can introduce some optimisation here, which means the back faces will be culled. We are also setting the polygon offset to eliminate z-fighting in the shadows. Those settings are used only if enabled.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Set shadow map drawing properties
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Enable shadow map drawing properties
+
+What we need to do is to enable depth testing. When this is enabled, the depth values will be compared and the result will be stored in the depth buffer.
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Enable depth test
+
+In this step, we want to generate the depth values only, which means we are allowed to disable writing to each framebuffer colour component.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Set colour mask for shadow map rendering
+
+Finally we are ready for the actual rendering.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Draw the scene from spot light point of view
+
+If we would like to use the generated depth texture data in a program object, it is enough to query for a shadow sampler uniform location and set the depth texture object as input value for this uniform.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Get depth texture uniform location
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Bind depth texture to specific binding point
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Set texture object for depth texture sampler
+
+More details about the program object and the scene rendering will be described in the following sections: \ref projectedLightsGeneraeColorTexture and \ref projectedLightsProjectingTexture.
+
+\section projectedLightsGeneraeColorTexture Generate and use colour texture
+
+There is a colour texture projected onto the scene, which is why we need to generate a texture object filled with data. This is achieved in some basic steps as described below.
+
+\image html ProjectedLightsTexture.bmp "Image that will be projected onto a screen."
+
+Set active texture unit for colour texture.
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Set active texture unit for colour texture
+
+Generate and bind texture object.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Generate and bind colour texture object
+
+Load BMP image data.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Load BMP image data
+
+Set texture object data.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Set colour texture object data
+
+Set texture object parameters.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Set colour texture object parameters
+
+Now, if we would like to use the texture within the program object, we need to query for the colour texture object uniform sampler location (note that following commands are called for active program object).
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Get colour texture uniform location
+
+Then we are ready to associate uniform sampler with texture object by calling
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Set texture object for colour texture sampler
+
+\section projectedLightsProjectingTexture Projecting a texture
+
+Finally, we are ready to describe the mechanism of projecting a texture.
+
+If you follow the instructions described in the previous sections (\ref projectedLightsRenderGeometry, \ref projectedLightsShadowMapping, \ref projectedLightsGeneraeColorTexture) you will be ready to focus on the projected lights mechanism.
+
+We are using only one program object in this tutorial. The vertex shader is rather simple (presented below). It is used for translating coordinates into eye- and NDC-space (which is the eye-space with the perspective applied).
+
+\snippet samples/tutorials/ProjectedLights/assets/render_scene_shader.vert Vertex shader source
+
+Please note that depth values are calculated from spot light's point of view. If we would like to use them while rendering the scene from camera's point of view, we would have to apply a translation from one space to another. Please look at the schema below.
+
+\image html ProjectedLightsMatrixSchema.png "Camera and spot light spaces schema."
+
+Our shadow map (the texture object containing depth values) is computed in spot light's NDC space, however we would need depth values in camera eye space. To achieve that, we would take a fragment from camera eye space and translate it to spot light NDC space in order to query for its depth value. We need to calculate a matrix which will help us with that. The idea is marked at the schema with red arrows.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Calculate matrix for shadow map sampling: depth texture
+
+The bias matrix is used to map values from a range <-1, 1> (eye space coordinates) to <0, 1> (texture coordinates).
+
+\snippet samples/tutorials/ProjectedLights/jni/Matrix.cpp Define bias matrix
+
+Analogous mechanism need to be used for sampling the colour texture. The only difference is that we want to fit the colour texture in the view, so that the texture is smaller and repeated multiple times.
+
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Define colour texture translation matrix
+\snippet samples/tutorials/ProjectedLights/jni/Native.cpp Calculate matrix for shadow map sampling: colour texture
+
+In the fragment shader, we are dealing with two types of lighting:
+- Directional lighting, which is implemented as presented below. We will not focus on this type of lighting here, as it should be already well known to a reader. If not, please refer to previous tutorials.
+
+\snippet samples/tutorials/ProjectedLights/assets/render_scene_shader.frag Calculate directional light
+
+- Spot lighting, which is the same as projected texturing and will be now explained in more details.
+
+First of all, we need to verify whether the fragment is placed inside or outside the spot light cone. This is checked by calculating the angle between the vector from light source to the fragment and vector from light source to point into which light is directed. If the anngle is bigger than the spot light angle, it means the fragment is outside the spot light cone, if smaller - inside.
+
+\snippet samples/tutorials/ProjectedLights/assets/render_scene_shader.frag Get fragment to light cos value
+
+The next step is to verify whether the fragment should be shadowed or lit by the spot light. This is done by sampling shadow map texture and comparing the result with the scene depth. 
+
+\snippet samples/tutorials/ProjectedLights/assets/render_scene_shader.frag Get shadow map depth value
+\snippet samples/tutorials/ProjectedLights/assets/render_scene_shader.frag Get model depth value
+
+If the fragment is inside the light cone and not in the shadow, the projected texture colour should be applied on it.
+
+\snippet samples/tutorials/ProjectedLights/assets/render_scene_shader.frag Calculate projected texture
+\snippet samples/tutorials/ProjectedLights/assets/render_scene_shader.frag Calculate spot light
+\snippet samples/tutorials/ProjectedLights/assets/render_scene_shader.frag Project texture on a fragment if needed
+
+After those operations are applied, we get the result as shown on the images below.
+
+\image html ProjectedLightsResult.png "The result of the rendering: when only the directional lighting is applied (on the left) and when projected lights are applied (on the right)."
+*/

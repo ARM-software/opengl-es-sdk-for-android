@@ -1,0 +1,564 @@
+/**
+\page oceanFFT Ocean Rendering with Fast Fourier Transform
+
+\brief This sample will show you how to efficiently implement high quality ocean water rendering using compute shaders in OpenGL ES 3.1.
+
+\image html ocean.png
+
+\section oceanIntroduction Introduction
+
+\note This sample uses OpenGL ES 3.1.
+
+\note This sample makes use of Tessellation shaders and RGBA16F framebuffer extensions when supported by the device.
+
+\note This sample assumes good knowledge of OpenGL ES 3.1 compute shaders.
+
+The ocean rendering technique in this sample is based on the well-known water rendering paper by J. Tessendorf <a href="#ref1">[1]</a> which
+implements heightmap generation by synthesizing a very large number of waves using the Fast Fourier Transform.
+
+The main principle of Ocean rendering is that it can be modelled very well by thinking of it a sum of "infinite" waves at different amplitudes travelling in different directions.
+
+Summing up a large number of sinusoids is very intensive with a naive approach, and has complexity O(M * N) if synthesizing M waves into N samples in one dimension.
+Increasing this to two dimensions and we end up with a terrible O(M * N^2) complexity.
+With simpler water techniques, very few waves are therefore used instead and the sinusoids are accumulated directly.
+For realistic looking water, we would really prefer the number of waves to be the same as number of samples.
+
+The inverse fast Fourier transform does this excellently, using only O(2N * (N * log2(N))) complexity for a 2D NxN grid to synthesize NxN waves.
+For reasonable values (this sample uses N = 256), this can be done very efficiently on GPUs.
+
+\section oceanFFTWaves The Fast Fourier Transform for Ocean Waves
+
+There are many excellent introductions to the Fast Fourier Transforms, so only a short introduction will be provided here.
+The core of the Fourier Transform is a transform which converts from the time/spatial domain to frequency domain and back.
+The mathematical formulation of the discrete (forward) Fourier Transform is:
+
+\code
+X[k] = sum n from 0 to N - 1: x[n] * exp(-j * k * 2 * pi * n / N)
+\endcode
+
+and inverse Fourier Transform which we're mostly interested in here:
+
+\code
+// Only real difference is the sign of j.
+x[n] = sum k from 0 to N - 1: X[k] * exp(j * n * 2 * pi * k / N)
+\endcode
+
+j is the imaginary constant sqrt(-1) which is also knows as "i". Thus, the Fourier Transform is formulated with complex numbers.
+Taking the exponential of an imaginary number might look weird at first, but it can be shown using Taylor expansion that
+exp(j * x) is equivalent to
+
+\code
+exp(j * x) = cos(x) + j * sin(x)
+\endcode
+
+If we imagine that the real and imaginary numbers form a 2D plane, exp(j * x) looks very much like rotation with angle x.
+In fact, we can simply think of exp(j * x) as a complex oscillator.
+
+This is the core of ocean wave synthesis. In the frequency domain, we will create waves with certain amplitudes and phases, and use the
+inverse Fourier transform to generate a sum of sinusoids. To move the water, we simply need to modify the phases in the frequency domain and do the inverse FFT over again.
+
+Since the FFT assumes repeating inputs, the heightmap will be tiled with GL_REPEAT wrapping mode. As long as the heightmap is large enough,
+the tiling effect should not be particularly noticable.
+
+The GPU FFT implementation used in this sample is based on the GLFFT library <a href="#ref2">[2]</a>.
+The FFT implementation in GLFFT is inspired by work from E. Bainville <a href="#ref3">[3]</a> which contain more details on how FFT can be implemented efficiently on GPUs.
+
+\subsection oceanGeneration Procedurally generating frequency domain samples
+
+The ocean is a random process in that the amplitudes and phases of waves are quite random, however, their statistical distributions are greatly affected by wind and can be modelled quite well.
+The Tessendorf paper <a href="#ref1">[1]</a> uses the Phillips spectrum which gives the estimated variance for waves at certain wavelengths based on wind direction and speed.
+
+Based on this formula, we generate a random two-dimensional buffer with initial phase and amplitude data for the heightmap and upload this to the GPU only at startup.
+
+\code
+cfloat FFTWater::phillips(vec2 k, float max_l)
+{
+    float k_len = vec_length(k);
+    if (k_len == 0.0f)
+    {
+        return 0.0f;
+    }
+
+    float kL = k_len * L;
+    vec2 k_dir = vec_normalize(k);
+    float kw = vec_dot(k_dir, wind_dir);
+
+    return
+        pow(kw * kw, 1.0f) *        // Directional
+        exp(-1.0 * k_len * k_len * max_l * max_l) * // Suppress small waves at ~max_l.
+        exp(-1.0f / (kL * kL)) *
+        pow(k_len, -4.0f);
+}
+
+void FFTWater::generate_distribution(cfloat *distribution, vec2 size, float amplitude, float max_l)
+{
+    vec2 mod = vec2(2.0f * M_PI) / size;
+
+    for (unsigned z = 0; z < Nz; z++)
+    {
+        for (unsigned x = 0; x < Nx; x++)
+        {
+            auto &v = distribution[z * Nx + x];
+            vec2 k = mod * vec2(alias(x, Nx), alias(z, Nz));
+            cfloat dist = cfloat(normal_dist(engine), normal_dist(engine));
+            v = dist * amplitude * sqrt(0.5f * phillips(k, max_l));
+        }
+    }
+}
+\endcode
+
+In Fourier Transforms, we need to consider negative and positive frequencies. Before computing the spatial frequency,
+we alias the frequency according to Nyquist. This means that the higher values for x and z will alias to the negative frequencies.
+The negative frequencies represent waves travelling in the opposite direction as the positive counterparts.
+
+\code
+static inline int alias(int x, int N)
+{
+    if (x > N / 2)
+        x -= N;
+    return x;
+}
+\endcode
+
+Before actually doing the FFT on the GPU, we run compute shader passes which generates a new frequency domain buffer for height, normals and displacement.
+
+\code
+void generate_heightmap()
+{
+    uvec2 i = gl_GlobalInvocationID.xy;
+    // Pick out the negative frequency variant.
+    uvec2 wi = mix(N - i, uvec2(0u), equal(i, uvec2(0u)));
+
+    // Pick out positive and negative travelling waves.
+    vec2 a = distribution[i.y * N.x + i.x];
+    vec2 b = distribution[wi.y * N.x + wi.x];
+
+    vec2 k = uMod * alias(vec2(i), vec2(N));
+    float k_len = length(k);
+
+    const float G = 9.81;
+
+    // If this sample runs for hours on end, the cosines of very large numbers will eventually become unstable.
+    // It is fairly easy to fix this by wrapping uTime,
+    // and quantizing w such that wrapping uTime does not change the result.
+    // See Tessendorf's paper for how to do it.
+    // The sqrt(G * k_len) factor represents how fast ocean waves at different frequencies propagate.
+    float w = sqrt(G * k_len) * uTime;
+    float cw = cos(w);
+    float sw = sin(w);
+
+    // Complex multiply to rotate our frequency samples.
+    a = cmul(a, vec2(cw, sw));
+    b = cmul(b, vec2(cw, sw));
+    b = vec2(b.x, -b.y); // Complex conjugate since we picked a frequency with the opposite direction.
+    vec2 res = a + b; // Sum up forward and backwards travelling waves.
+    heights[i.y * N.x + i.x] = pack2(res);
+}
+\endcode
+
+\subsubsection oceanRealFFT Using Complex-To-Real FFT to speed up heightmap GPU FFT by almost 2x
+
+While the frequency space is indeed complex, the final heightmaps we're interested in contain real data.
+Since the frequency samples generated by generate_heightmap() are complex conjugated, we can use a clever two-for-one FFT scheme which
+can do complex-to-real FFT at close to 2x improvement in both speed and power.
+
+For the normal map and displacement map however, we need two components, so we do a regular complex-to-complex FFT in this case.
+
+\code
+// Init GLFFT
+fft_height = unique_ptr<FFT>(new FFT(Nx, Nz,
+            ComplexToReal, Inverse, SSBO, ImageReal, cache, options));
+fft_displacement = unique_ptr<FFT>(new FFT(Nx >> displacement_downsample, Nz >> displacement_downsample,
+            ComplexToComplex, Inverse, SSBO, Image, cache, options));
+fft_normal = unique_ptr<FFT>(new FFT(Nx, Nz,
+            ComplexToComplex, Inverse, SSBO, Image, move(cache), options));
+
+// Generate new FFTs
+glUseProgram(prog_generate_height.get());
+glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, distribution_buffer.get());
+glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, freq_height.get());
+// ...
+// We only need to generate half the frequencies due to C2R transform.
+glDispatchCompute(Nx / 8 + 1, Nz / 4, 1);
+
+glUseProgram(prog_generate_displacement.get());
+glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, distribution_buffer_displacement.get());
+glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, freq_displacement.get());
+// ... Since displacement is very low-frequency, compute it at a lower resolution.
+glDispatchCompute((Nx >> displacement_downsample) / 4, (Nz >> displacement_downsample) / 4, 1);
+
+glUseProgram(prog_generate_normal.get());
+glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, distribution_buffer_normal.get());
+glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, freq_normal.get());
+// ...
+glDispatchCompute(Nx / 4, Nz / 4, 1);
+
+glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+// Compute the iFFT
+texture_index ^= 1;
+fft_height->process(heightmap[texture_index].get(), freq_height.get());
+fft_displacement->process(displacementmap[texture_index].get(), freq_displacement.get());
+fft_normal->process(normalmap[texture_index].get(), freq_normal.get());
+glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+\endcode
+
+
+After generating the iFFTs, we generate heightmap normals, compute the Jacobian, and various other things, before mipmapping
+the textures.
+
+\subsubsection oceanFP16FFT Using FP16 FFTs for bandwidth savings and performance
+
+Using a FP16 FFT instead of FP32 FFT works well in this sample and this saves lots of extra bandwidth and computation in the FFT implementation.
+
+\subsubsection oceanMipmap Correctly mipmapping the heightmap
+
+One important detail with mipmapping the heightmap is that we cannot use a box filter. Instead, we pretend that the first texel
+lies on uv = (0, 0). This is necessary later when we want to properly render the heightmap.
+It is also necessary to mipmap our heightmap with compute shaders.
+The alternative is to compute the mipmap with fragment shaders, but for a tiled architecture such as Mali,
+having vertex shading (which uses the heightmap) depends on fragment (mip-generation) often creates a bad pipeline stall.
+
+\code
+    vec2 uv = (2.0 * vec2(gl_GlobalInvocationID.xy) + 0.5) * uInvSize; // A typical box filter would use 1.0 offset here instead of 0.5.
+
+    mediump vec4 filtered = vec4(0.0);
+    filtered += 0.25 * textureLod(uNormal, uv + vec2(-D, -D) * uInvSize, float(uLod));
+    filtered += 0.25 * textureLod(uNormal, uv + vec2(+D, -D) * uInvSize, float(uLod));
+    filtered += 0.25 * textureLod(uNormal, uv + vec2(-D, +D) * uInvSize, float(uLod));
+    filtered += 0.25 * textureLod(uNormal, uv + vec2(+D, +D) * uInvSize, float(uLod));
+
+    imageStore(iNormal, ivec2(gl_GlobalInvocationID.xy), filtered);
+\endcode
+
+\subsection oceanChoppy Choppy waves
+
+In reality, ocean waves do not behave like pure sinusoids, but behave in a more "choppy" way where peaks of the waves compact a bit, to make the waves look sharper.
+
+Using only a straight heightmap, this is not easy to implement, however, we can have another "displacement" map which computes displacement in the horizontal plane as well. If we compute the inverse Fourier transform of the gradient of the heightmap, we 
+can find a horizontal displacement vector which we will push vertices toward. This gives a great choppy look to the waves.
+
+By adding choppiness, we can go from
+
+\image html oceanNoChopping.png
+
+to
+
+\image html oceanChopping.png
+
+We implement it in compute shaders by modifiying generate_heightmap() slightly.
+
+\code
+void generate_displacement()
+{
+    // ...
+    // Derivative of exp(j * x) is j * exp(j * x).
+    vec2 grad = cmul(res, vec2(-k.y / (k_len + 0.00001), k.x / (k_len + 0.00001)));
+    grads[i.y * N.x + i.x] = pack2(grad);
+}
+\endcode
+
+See <a href="#ref1">[1]</a> for mathematical details.
+
+\subsection oceanJacobian Using the Jacobian for modelling turbulent effects at wave crests
+
+At wave crests, the turbulence tends to cause a more diffuse reflection, increasing overall brightness and "whiteness" of the water.
+By looking at the gradient of the horizontal displacement map, we can detect where the crests occur and use this to pass a turbulence factor to the fragment shader.
+
+\code
+// From bake_height_gradient.comp.
+
+mediump float jacobian(mediump vec2 dDdx, mediump vec2 dDdy)
+{
+    return (1.0 + dDdx.x) * (1.0 + dDdy.y) - dDdx.y * dDdy.x;
+}
+#define LAMBDA 1.2
+
+vec2 dDdx = 0.5 * LAMBDA * (
+    textureLodOffset(uDisplacement, uv.zw, 0.0, ivec2(+1, 0)).xy -
+    textureLodOffset(uDisplacement, uv.zw, 0.0, ivec2(-1, 0)).xy);
+vec2 dDdy = 0.5 * LAMBDA * (
+    textureLodOffset(uDisplacement, uv.zw, 0.0, ivec2(0, +1)).xy -
+    textureLodOffset(uDisplacement, uv.zw, 0.0, ivec2(0, -1)).xy);
+float j = jacobian(dDdx * uScale.z, dDdy * uScale.z);
+
+imageStore(iHeightDisplacement, ivec2(gl_GlobalInvocationID.xy), vec4(h, displacement, 0.0));
+imageStore(iGradJacobian, ivec2(gl_GlobalInvocationID.xy), vec4(grad, j, 0.0));
+\endcode
+
+When the Jacobian factor is close to 0, the water is very "turbulent" and when larger than 1, the water mesh has been "stretched" out. A Jacobian of 1 is the "normal" state.
+
+We combine the lower-frequency Jacobian with the normal map in the fragment shader to compute a final "turbulence" factor which creates a neat shading effect.
+
+\code
+// water.fs
+vec3 vGradJacobian = texture(uGradJacobian, vGradNormalTex.xy).xyz;
+vec2 noise_gradient = 0.30 * texture(uNormal, vGradNormalTex.zw).xy;
+
+float jacobian = vGradJacobian.z;
+float turbulence = max(2.0 - jacobian + dot(abs(noise_gradient), vec2(1.2)), 0.0);
+
+// This is rather "arbitrary", but looks pretty good in practice.
+float color_mod = 1.0 + 3.0 * smoothstep(1.2, 1.8, turbulence);
+\endcode
+
+\section oceanHeightmap Rendering Heightmap Efficiently with Continuous LOD
+
+Rendering heightmaps (terrains) efficiently is a big topic on its own. 
+For this sample, we implement two different approaches to rendering continous LOD heightmaps.
+Both variants have a concept of patches which are adaptively subdivided based on distance to camera.
+
+First we place a large grid of patches in the world. The patches are roughly centered around the camera, but they do not move
+in lock-step with the camera, rather, they only move in units of whole patches in order to avoid the "vertex swimming" artifact.
+
+\image html oceanPatch.png
+
+With this scheme, we want to subdivide the patches depending to distance to camera.
+The full grid is quite large, so we cannot have full quality for the entire world without taking a serious performance hit.
+
+\image html oceanPatchSubdivision.png
+
+We also want a "continous" LOD effect. A difficult problem to solve is avoiding "popping" artifacts and "swimming" artifacts at the same time.
+Popping happens when the vertex mesh suddenly changes resolution without any kind of transition band.
+Vertex swimming happens if we move the heightmap (and hence texture sampling coordinates) around without snapping it to some kind of grid.
+
+\subsection oceanTessellation Tessellation
+For adaptively subdividing a patch, Tessellation in OpenGL ES 3.2 <a href="#ref7">[7]</a> can solve this quite neatly.
+
+\image html oceanTess.png
+
+We implement tessellation by treating our water patch as a GL_PATCH primitive.
+In the control shader, we compute tessellation factors for our patch.
+
+\code
+float lod_factor(vec2 pos)
+{
+    pos *= uScale.xy;
+    vec3 dist_to_cam = uCamPos - vec3(pos.x, 0.0, pos.y);
+    float level = log2((length(dist_to_cam) + 0.0001) * uDistanceMod);
+    return clamp(level, 0.0, uMaxTessLevel.x);
+}
+
+float tess_level(float lod)
+{
+    return uMaxTessLevel.y * exp2(-lod);
+}
+
+vec4 tess_level(vec4 lod)
+{
+    return uMaxTessLevel.y * exp2(-lod);
+}
+\endcode
+
+For the outer tessellation factors, it is vital that the tessellation factors are exactly the same for patches which share edges, otherwise, we risk cracks in the water mesh, which is never a good sign.
+
+To make this work, we find tessellation factors in the four corners of our patch.
+We then take the minimum LOD of two corners which belong to an edge, which decides the tessellation factor for that edge.
+
+\code
+float l0 = lod_factor(p0 + vec2(0.0, 1.0) * uPatchSize);
+float l1 = lod_factor(p0 + vec2(0.0, 0.0) * uPatchSize);
+float l2 = lod_factor(p0 + vec2(1.0, 0.0) * uPatchSize);
+float l3 = lod_factor(p0 + vec2(1.0, 1.0) * uPatchSize);
+
+vec4 lods = vec4(l0, l1, l2, l3);
+vPatchLods = lods;
+
+vec4 outer_lods = min(lods.xyzw, lods.yzwx);
+vec4 tess_levels = tess_level(outer_lods);
+float inner_level = max(max(tess_levels.x, tess_levels.y), max(tess_levels.z, tess_levels.w));
+\endcode
+
+In order to avoid processing patches which are outside the camera, we frustum cull in the control shader as well,
+and set tessellation factors to negative values which discards the patch outright.
+
+In the evaluation shader, we interpolate the corner LODs calculated by the control shader to figure out which LOD we should sample the heightmap with.
+
+\code
+patch in vec4 vPatchLods;
+
+mediump vec2 lod_factor(vec2 tess_coord)
+{
+    // Bilinear interpolation.
+    mediump vec2 x = mix(vPatchLods.yx, vPatchLods.zw, tess_coord.x);
+    mediump float level = mix(x.x, x.y, tess_coord.y);
+
+    mediump float floor_level = floor(level);
+    mediump float fract_level = level - floor_level;
+    return vec2(floor_level, fract_level);
+}
+\endcode
+
+When sampling the heightmap, we need to take extra care to make sure we avoid the swimming artifact. A simple and effective way to make sure this happens
+is that when we sample the heightmap, we sample the respective mipmaps between their texels so the bilinear interpolation is smooth and has a continuous first derivative.
+For this reason, we cannot use tri-linear filtering directly, but we can easily do this ourselves.
+Ideally, we would like uv = (0, 0) to land exactly on the first texel here since that would also map to first texel
+in the next miplevel, however, this is not the case with OpenGL ES.
+For this, reason, we apply the half-texel offsets independently for every level.
+The speed hit here is negligible, since tri-linear filtering generally does two texture lookups anyways.
+
+\code
+mediump vec3 sample_height_displacement(vec2 uv, vec2 off, mediump vec2 lod)
+{
+    return mix(
+            textureLod(uHeightmapDisplacement, uv + 0.5 * off, lod.x).xyz,
+            textureLod(uHeightmapDisplacement, uv + 1.0 * off, lod.x + 1.0).xyz,
+            lod.y);
+}
+\endcode
+
+The second thing we need to take care of is using the appropriate subdivision type. Tessellation supports equal_spacing, fractional_even and fractional_odd.
+We opt for fractional_even here since it will interpolate towards an even number of edges which matches well with the textures we sample from.
+We want our vertex grid to match with the texel centers on the heightmap as much as possible.
+
+\code
+layout(cw, quads, fractional_even_spacing) in;
+\endcode
+
+\subsection oceanContinuousLOD Continuous LOD Morphing Geo-MipMap
+
+For devices which do not support tessellation, we implement a heightmap rendering scheme which takes inspiration from tessellation,
+geomipmaping <a href="#ref4">[4]</a>,
+geomorphing <a href="#ref5">[5]</a> and CDLOD techniques <a href="#ref6">[6]</a>,
+using vertex shaders and instancing only.
+
+\image html oceanModifiedTess.png
+
+Like geomipmapping and geomorphing, the patch size is fixed, and we achieve LOD by subdividing the patch with different pre-made meshes.
+Like CDLOD, we transition between LODs by "morphing" the vertices so that before switching LOD, we warp the odd vertices towards the even ones so that the fully warped mesh is the same as the lower-detail mesh,
+which guarantees no popping artifacts.
+Morphing between LODs and using a fixed size patch is essentially what tessellation does, so this scheme can be seen as a subset of quad patch tessellation.
+
+One of the main advantages of this scheme over CDLOD is its ability to use a different LOD function than pure distance since CDLOD uses a strict quad-tree structure purely based on distance.
+It is also simpler to implement as there is no tree structure which needs to be traversed.
+There is also no requirement for the patches to differ by only one LOD level as is the case with CDLOD, so it is possible to adjust the LOD where the heightmap is very detailed, and reduce
+vertex count for patches which are almost completely flat. This is a trivial "LOD bias" when processing the patches.
+
+The main downsides of this algorithm however is that more patches are needed to be processed individually on CPU since there is no natural quad-tree structure
+(although it is possible to accelerate it with compute and indirect drawing) and for planetary style terrain with massive
+differences in zoom (e.g. from outside the atmosphere all the way into individual rocks), having a fixed patch size is not feasible.
+
+To allow arbitrary LOD between patches, we need to know the LOD at all the four edges of the patch and the inner LOD before warping our vertex position.
+This info is put in a per-instance uniform buffer.
+
+\code
+vec2 warp_position()
+{
+    // aLODWeights is a vertex attribute that contains either (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1) or (0, 0, 0, 0).
+    // It is all zero when our vertices is inside the patch, and contains a 1 if our vertex lies on an edge.
+    // For corners, we don't really care which edge we belong to since the corner vertices
+    // will never be snapped anywhere.
+    // Using a dot product, this lets us "select" an appropriate LOD factor.
+    // For the inner lod, we can conditionally select this efficiently using the boolean mix() operator.
+
+    float vlod = dot(aLODWeights, patches.data[gl_InstanceID].LODs);
+    vlod = mix(vlod, patches.data[gl_InstanceID].InnerLOD.x, all(equal(aLODWeights, vec4(0.0))));
+
+    // aPosition.xy holds integer positions locally in the patch with range [0, patch_size].
+    // aPosition.zw are either 0 or 1. These select in which direction we will snap our vertices when warping to the lower LOD.
+    // It is important that we always round towards the center of the patch, since snapping to one of the edges can lead to popping artifacts.
+
+    float floor_lod = floor(vlod);
+    float fract_lod = vlod - floor_lod;
+    uint ufloor_lod = uint(floor_lod);
+
+    // Snap to grid corresponding to floor(lod) and ceil(lod).
+    uvec2 mask = (uvec2(1u) << uvec2(ufloor_lod, ufloor_lod + 1u)) - 1u;
+    uvec4 rounding = aPosition.zwzw * mask.xxyy; // Either round towards 0 or +inf.
+    vec4 lower_upper_snapped = vec4((aPosition.xyxy + rounding) & ~mask.xxyy);
+
+    // Then lerp between them to create a smoothly morphing mesh.
+    return mix(lower_upper_snapped.xy, lower_upper_snapped.zw, fract_lod);
+}
+\endcode
+
+We also want to sample our heightmap using a LOD level that closely matches the patch LOD.
+For this, we have a tiny GL_R8 LOD texture which has one texel per patch and we can linearly interpolate the LOD factors from there.
+We update this texture when processing the patches.
+
+\code
+mediump vec2 lod_factor(vec2 position)
+{
+    vec2 uv = (position + patches.data[gl_InstanceID].Offsets.zw) * uLodScaleOffset;
+    mediump float level = textureLod(uLod, uv, 0.0).x * (255.0 / 32.0); // Rescale the UNORM value.
+    mediump float floor_level = floor(level);
+    mediump float fract_level = level - floor_level;
+    return vec2(floor_level, fract_level);
+}
+\endcode
+
+Building the UBO is also quite simple. To select LODs we look at the four neighbor patches.
+The edge LOD is the maximum of the two neighbors. We need the maximum since otherwise there would not be enough vertices in one of the patches
+to correctly stitch together the edge.
+
+\code
+for (unsigned z = 0; z < blocks_z; z++)
+{
+    for (unsigned x = 0; x < blocks_x; x++)
+    {
+        if (!patches[z * blocks_x + x].visible)
+            continue;
+
+        // Clamp to edge.
+        unsigned px = x ? (x - 1) : 0;
+        unsigned pz = z ? (z - 1) : 0;
+        unsigned nx = min(x + 1, blocks_x - 1);
+        unsigned nz = min(z + 1, blocks_z - 1);
+
+        float left = lod_buffer[z * blocks_x + px];
+        float top = lod_buffer[nz * blocks_x + x];
+        float right = lod_buffer[z * blocks_x + nx];
+        float bottom = lod_buffer[pz * blocks_x + x];
+        float center = lod_buffer[z * blocks_x + x];
+
+        float left_lod = max(left, center);
+        float top_lod = max(top, center);
+        float right_lod = max(right, center);
+        float bottom_lod = max(bottom, center);
+        int center_lod = int(center);
+
+        auto &lod = lod_meshes[center_lod];
+
+        unsigned ubo_offset = center_lod * blocks_x * blocks_z;
+
+        ubo_data[ubo_offset + lod.full.instances].Offsets = vec4(
+                patches[z * blocks_x + x].pos + block_offset, // Offset to world space.
+                patches[z * blocks_x + x].pos);
+        ubo_data[ubo_offset + lod.full.instances].LODs = vec4(left_lod, top_lod, right_lod, bottom_lod);
+        ubo_data[ubo_offset + lod.full.instances].InnerLOD = vec4(center);
+
+        lod.full.instances++;
+    }
+}
+\endcode
+
+While we could in theory use the LOD factor we generate in warp_position() to sample the heightmap,
+this would break the corner vertices on the patch. We need to make sure all vertices that are shared between patches
+compute the exact same vertex position. This is not the case with the vlod factor we compute in warp_position().
+
+From here, we sample our heightmaps, etc as before, very similar to the evaluation shader implementation.
+
+\section oceanShading Shading Ocean Water
+
+While correctly shading ocean water is a big topic entirely on its own, this sample uses a simple approach of cubemap reflection against a pregenerated skydome.
+For more realistic specular shading, the fresnel factor is added in. No actual diffuse shading is used, and the only source of lighting is the skydome cube map.
+
+The shader samples two normal (gradient) maps, one low-resolution map generated from the heightmap, and one high-frequency gradient map which is also generated using FFT.
+
+\section oceanReferences References
+
+<a name="ref1">[1]</a> J. Tessendorf - Simulating Ocean Water - http://graphics.ucsd.edu/courses/rendering/2005/jdewall/tessendorf.pdf
+
+<a name="ref2">[2]</a> GLFFT - Fast Fourier Transform library for OpenGL - https://github.com/Themaister/GLFFT
+
+<a name="ref3">[3]</a> E. Bainville - OpenCL Fast Fourier Transform - http://www.bealto.com/gpu-fft.html
+
+<a name="ref4">[4]</a> W. H. de Boer - Fast Terrain Rendering Using Geometrical MipMapping - http://www.flipcode.com/archives/article_geomipmaps.pdf
+
+<a name="ref5">[5]</a> D. Wagner - Terrain Geomorphing in the Vertex Shader - https://www.ims.tuwien.ac.at/publications/tuw-138077.pdf
+
+<a name="ref6">[6]</a> F. Strugar - Continous Distance-Dependent Level of Detail for Rendering Heightmaps (CDLOD) - http://www.vertexasylum.com/downloads/cdlod/cdlod_latest.pdf
+
+<a name="ref7">[7]</a> GL_EXT_tessellation_shader (now OpenGL ES 3.2) - https://www.khronos.org/registry/gles/extensions/EXT/EXT_tessellation_shader.txt
+
+*/

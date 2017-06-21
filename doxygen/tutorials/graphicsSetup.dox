@@ -1,0 +1,196 @@
+/**
+\page graphicsSetup Graphics Setup
+\brief Setting up your application ready for graphics
+
+\section graphicsSetupIntroduction Introduction
+
+The source for this sample can be found in the
+\if windows
+*samples\\tutorials\\GraphicsSetup*
+\endif
+\if linux
+*samples/tutorials/GraphicsSetup*
+\endif
+folder of the SDK.
+
+This tutorial will take the native application code that you generated in the \ref firstNative
+tutorial and add the necessary code to it in order to run OpenGL ES graphics. Although this
+tutorial will not produce
+anything new on the screen it will form the basis of all tutorials to come and will make explaining
+concepts in the next few tutorials much easier.
+
+\section graphicsSetupApplicationFlow Application Flow
+
+Just before we begin we will revisit the basic application flow and show where the graphics sections of
+code fit in.
+
+  - The application will start and control will be immediately passed to the Activity onCreate Function.
+  - This function will create an instance of your View class and then will set the display to this View
+    class.
+  - On creation the View class will call an initialization function. This function will setup the surface
+    to be rendered too. This involves setting an EGLContextFactory, setting an EGLConfiguration
+    and then setting a Renderer.
+  - Your renderer has two important functions. One is called when the surface size is either created or
+    changed. The second is called every time a new frame is ready to be drawn. These functions typically
+    reference functions that
+    are written in the native side of your application. It does this by using a different class that holds
+    function prototypes of all your native functions.
+  - The native side then takes over and will render your scene.
+
+\section graphicsSetupNewProject Creating a New Project
+
+We will be using the code created on a previous project a starting point for this project. So either copy
+the project or create a completely new project and include the source files from the previous project. The
+project should
+be called **GraphicsSetup** and the package name should be called **com.arm.malideveloper.openglessdk.graphicssetup**
+Finally the activity class (previously *FirstNative.java*) should be
+renamed **SimpleTriangle.java** using Eclipse (this ensures references to the activity get updated elsewhere in the project).
+
+\section graphicsSetupAppropriateFiles Creating the Appropriate Files for our Project
+
+This application will have three Java files and one C file. This means that we need to add one more file to our
+project called TutorialView.java. So right click on the project name GraphicsSetup and select *New ->
+File*. From the directory structure that appears navigate to
+*GraphicsSetup->src->com->arm->malideveloper->openglessdk->graphicssetup* and then enter the filename **TutorialView.java** and
+then click *Finish*. TutorialView.java should now be added to the same
+location as GraphicsSetup.java. This is the only file you need to create. The rest of this tutorial will go
+through all the files explaining what needs to be added.
+
+\section graphicsSetupGraphicsSetup GraphicsSetup Class
+
+None of the imports changed so there is no need to repeat that code. There is a new class member that is an
+instance of TutorialView. In Android any on screen elements are called views. As there isn't one that
+already defined that meets all of our requirements we need to define a new one in another class. This will inherit from
+GLSurfaceView and will be where our graphics will eventually get displayed.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/GraphicsSetup.java New members
+
+The onCreate method should be mostly the same as we had before except we want to create a new instance of
+TutorialView and assign it to the graphicsView variable. We then want to set the current content to be this
+new view. Meaning that the view that Android focuses on is the new Tutorialview we create.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/GraphicsSetup.java onCreate
+
+Now for the onPause and onResume methods we do the same as before and call the super class on each of the
+functions so that the application can pause and resume correctly. We also need to call our new graphicsView
+onPause() and onResume() method appropriately. So that when the application needs to pause the graphics are paused as well.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/GraphicsSetup.java onPause and onResume
+
+That is all the changes we will do to GraphicsSetup.
+
+\section graphicsSetupTutorialView TutorialView Class
+
+It is time to create our one new file for this tutorial. As mentioned before the TutorialView is the view
+that will contain all of our graphics. We need to do quite a lot here. We need to get a configuration for
+the surface we will draw to and we will need to set the context up correctly for OpenGL ES 2.0. More information will be
+given in the relevant sections.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/TutorialView.java Includes
+
+Here we have the standard logging header as before but we also need to include the graphics headers.
+Earlier we mentioned that our view was going to derive from GLSurfaceView so we need to import that as well
+as other headers specific to EGL and OpenGL ES. Including the EGLContext and configurations that have been briefly mentioned.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/TutorialView.java Member variables
+
+These lines above are member variables to the class. When setting up your surface for all of your graphics
+to run on you need to specify a series of parameters. One of the most important is what format you want
+want the surface to be in. We are going to go for a surface that is know as RGBA 8888. This means that we are going to use
+full 32-bit colour made up of 8-bits red, 8-bits green, 8-bits blue and 8-bits alpha.
+
+We will also set the depth buffer size to 16-bits. This will be needed in later tutorials to make sure that
+objects are displayed in the right order. Sample size is to do with enabling Anti Aliasing. As you get 4x
+Anti Aliasing almost for free on a Mali platform, we will enable it. The stencil buffer is an advanced concept so for now we
+are disabling by setting it to 0.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/TutorialView.java Constructor
+
+This section of code is the constructor for our new View class. The first thing we do is again call the
+super constructor to take care of all the setup that we don't want to get directly involved in. The next two
+calls are to do with EGL and will be defined later on. EGL is a very important part of OpenGL ES and acts as the interface
+between the windowing system and OpenGL ES drawing commands. We use it for create drawing surfaces and
+communicating with the native windows systems. We also use it to find out what surface configurations are available on
+the desired platform.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/TutorialView.java ContextFactory
+
+This class comes next in the source code and is part of the tutorialView class.
+This implements an EGLContextFactory class that is defined as part of Android.
+It is roughly similar to EGLContext on other platforms. An EGLContext is a data structure that is used internally by OpenGL.
+For the most part you don't need to worry about it. In fact Android hides most of the details from you.
+All you need to do is define these two functions.
+
+The createContext function as you may of guessed just creates a context for you. It takes in a list of
+attributes which in this instance only holds one attribute. EGL_CONTEXT_CLIENT_VERSION which you set to the
+version of OpenGL ES you are using, in this case 2. The EGL10.EGL_NONE is used to signify the end of the list. Once
+the context is created you just return it. The destroyContext function just deletes the context that is
+passed to it.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/TutorialView.java ConfigChooser
+
+The next class that we need to implement is EGLConfigChooser. This is the class that deals with all of the
+surface parameters we listed right at the start of the view class. This class needs to implement the
+function chooseConfig. The first thing we do is create another attribute list that will hold the desired
+configuration that we want. All of the attributes listed have been discussed at the beginning except
+EGL_RENDERABLE_TYPE. We need to set this to the interface that we are using. In this case it will be OpenGL ES 2.0.
+
+We then need to get the number of configs that are supported so we call eglChooseConfig with NULL so that
+it just returns the number of configs available. We then create a new array of EGLConfigs to hold all the
+configurations that match what we require. Now unfortunately, even though we specify exactly what conditions we want for
+our surface configuration, EGL will be happy to give you anything that is greater than the configuration
+you ask for. This may not be desired as we may want a 565 colour space and under its rules it will be able to return you an
+8888 configuration.
+
+This means we need to go through all of the configurations to select one which is appropriate. That is the
+job of the next function selectConfig.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/TutorialView.java selectConfig
+
+This function loops through all of the configurations that match or exceed our current specification and
+then makes sure that our configuration is matched exactly. It does this by calling the function
+getConfigAttrib which returns the value of a given parameter. It then compares them with their desired value and only returns the
+configuration if it finds a match. The final function that is part of the ConfigChooser is the getConfigAttrib described earlier.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/TutorialView.java getConfigAttrib
+
+This function just calls the EGL Library equivalent and then just returns the value given. Note the keyword
+value here comes from right at the start of the class it was one of the parameters that we defined. This
+leads us on to our final class of our view structure, the Renderer class.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/TutorialView.java Renderer
+
+The Renderer class acts as a basic callback function. We need to implement three different methods. The
+first, onDrawFrame is called when a new frame has been requested to render. In this case we send control straight
+into the native side of our application. onSurfaceChanged gets called when your surface has changed. This also gets called
+when the surface gets created. If you are familiar with standard OpenGL you maybe familiar with some of
+the callback functions. As onSurfaceChanged gets called when the surface gets created, here we are going to leave onSurfaceCreated blank.
+
+\section graphicsSetupNativeLibrary NativeLibrary Class
+
+There is very little change to the interface library. We just need to add a function prototype for the step function, which
+will be called every frame, and add two parameters to the init function. These two parameters should be the
+width and the height of the view.
+
+\snippet tutorials/GraphicsSetup/src/com/arm/malideveloper/openglessdk/graphicssetup/NativeLibrary.java NativeLibrary
+
+\section graphicsSetupNativeCode Native Code
+
+Again, very little has changed here. We have just added the step function prototype and then defined the
+function to print a new message to the Android log. As the Android package name has changed
+we need to also reflect that in the C Function Names.
+
+Here are the prototypes:
+\snippet tutorials/GraphicsSetup/jni/Native.cpp Function prototypes
+
+Here are the Definitions:
+\snippet tutorials/GraphicsSetup/jni/Native.cpp Function definition
+
+\section graphicsSetupBuildRun Building and Running the Application
+
+Follow the \ref gettingStartedGuide from \ref gettingStartedGuideBuildingTheSamples onwards to build and run the application.
+
+\section graphicsSetupNextSteps Next Steps
+
+Now move on to making your first \ref simpleTriangle.
+*/

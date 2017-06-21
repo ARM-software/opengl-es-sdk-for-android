@@ -1,0 +1,74 @@
+/** \page instancedTessellation Instanced Tessellation
+
+\brief The application displays a rotating solid torus with a low-polygon wireframed mesh surrounding it. The torus is drawn by means of instanced tessellation technique using OpenGL ES 3.0.
+
+\section instancedTessellationIntro Introduction
+
+It's assumed that you have read and understood all of the mechanisms described in \ref assetLoading,\ref simpleTriangle and \ref textureCube.
+
+\section instancedTessellationOverview Overview
+
+\image html InstancedTessellation_android.png "The application displays a rotating solid torus with a low-polygon wireframed mesh surrounding it."
+
+To perform instanced tessellation, we need to divide our model into several patches. Each patch is densely packed with triangles and improves the effect of round surfaces. In the first stage of tessellation, patches consist of vertices placed in a form of a square. Once passed to the shader, they are transformed into Bezier surfaces on the basis of control points stored in uniform blocks. Each instance of a draw call renders next part of the torus.
+
+The following application instantiates two classes, these manage both the solid torus model and the wireframe that surrounds it. The first class is responsible for configuration of a program with shaders capable of instanced drawing, initialization of data buffers and handling instanced draw calls. To simplify the mathematics and satisfy conditions for C1 continuity between patches, we assume that torus is constructed by 12 circles, each also defined by 12 points. In that manner, we are able to divide "big" and "small" circle of torus into four quadrants and build Bezier surfaces that approximate perfectly round shapes. For that purpose, the control points cannot lay on the surface of the torus, but have to be distorted as appropriate.
+
+The second class manages components corresponding to the wireframe. It uses vertices placed on the surface of torus and uses a simple draw call with GL_LINES mode. The size of its "small circle" is slightly bigger than the corresponding dimension of the solid torus, so there is a space between both the models.
+
+Common elements for both classes are placed in an abstract Torus class.
+
+\section instancedTessellationSetupGraphics Setup Graphics
+
+First of all, we need to generate coordinates of the model that we will render. This is achieved in constructors of *WireframeTorus* and *InstancedSolidTorus* classes.
+
+\snippet samples/tutorials/InstancedTessellation/jni/Native.cpp Generate WireframeTorus object
+\snippet samples/tutorials/InstancedTessellation/jni/Native.cpp Generate InstancedSolidTorus object
+
+Please note that we wanted the wireframe object to be a little bit larger than the solid one, this is why the *circleRadius* is increased by *distance*. Thanks to that we will see a solid object which is surrounded by the wireframe object.
+
+The coordinates are generated in the same way for both models as shown below
+
+\snippet samples/tutorials/InstancedTessellation/jni/TorusModel.cpp Generate torus model vertex coordinates
+
+There are separate program objects that are used while rendering a requested model. There is no lighting applied on the wireframe model nor complicated vertex translations which makes things much easier. Please look at the shaders that are used while rendering the wireframe model.
+
+Vertex shader source for the wireframe torus
+
+\snippet samples/tutorials/InstancedTessellation/assets/Instanced_Tessellation_Wireframe_shader.vert Vertex shader source
+
+Fragment shader source for the wireframe torus
+
+\snippet samples/tutorials/InstancedTessellation/assets/Instanced_Tessellation_Wireframe_shader.frag Fragment shader source
+
+If we now would like to render the wireframe torus on the screen, it's enough to issue the *glDrawElements()* call using *GL_LINES* mode. Of course there should be a proper program object and vertex array object used.
+
+\snippet samples/tutorials/InstancedTessellation/jni/WireframeTorus.cpp Draw wireframe torus
+
+Please look into the shader objects that we are using to render the solid torus. The situation here is more complicated as there is some lighting applied and instanced drawing technique with vertices transformed into Bezier surface is issued.
+
+Vertex shader source for the solid torus
+
+\snippet samples/tutorials/InstancedTessellation/assets/Instanced_Tessellation_Instanced_shader.vert Vertex shader source
+
+Fragment shader source for the solid torus
+
+\snippet samples/tutorials/InstancedTessellation/assets/Instanced_Tessellation_Instanced_shader.frag Fragment shader source
+
+If we now would like to render the solid torus on the screen, it's enough to issue the *glDrawElementsInstanced()* call using *GL_TRIANGLES* mode. Of course there should be proper program object and vertex array object used.
+
+\snippet samples/tutorials/InstancedTessellation/jni/InstancedSolidTorus.cpp Draw solid torus
+
+\section instancedTessellationResult Result
+
+We wanted the model to rotate, which is why we need to calculate a new rotation angle each frame. Once we have a rotation vector generated, it's used to update the vertices position for both: wireframe and solid torus.
+
+\snippet samples/tutorials/InstancedTessellation/jni/Native.cpp Update rotations angle
+
+The calculated values are then used while drawing the requested models.
+
+\snippet samples/tutorials/InstancedTessellation/jni/Native.cpp Draw wireframe model
+\snippet samples/tutorials/InstancedTessellation/jni/Native.cpp Draw solid model
+
+\image html InstancedTessellation_result.png "The result model consists of both: wireframe and solid torus."
+*/

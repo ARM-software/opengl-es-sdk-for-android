@@ -1,0 +1,155 @@
+/** \page integerLogic Integer Logic
+
+\brief The application simulates cellular automata phenomenon following Rule 30 using OpenGL ES 3.0.
+
+\section integerLogicIntroduction Introduction
+
+It's assumed that you have read and understood all of the mechanisms described in \ref assetLoading,\ref simpleTriangle and \ref textureCube.
+
+\section integerLogicOverview Overview
+
+\image html IntegerLogic_android.png "The application simulates cellular automata phenomenon following Rule 30."
+
+It uses two programs which operate on two textures used in a ping-pong manner. The first program takes the ping texture (*ping*) as the input and renders the output to a second texture (*pong*). Rendering in this case is performed by drawing one row at a time, with each row having height of 1 pixel and being of screen width. Excluding the first row, each row is drawn by reading one row above the currently processed one and applying the cellular automata  rule. The first row's contents are set by the application. Since we cannot draw and read from the same texture at a single time, the drawing is performed one row at a time. After a row is drawn to texture *A*, the application binds texture *B* for drawing and uses texture *A* for reading the previous line. In the end, texture *A* contains even rows and texture *B* contains odd rows.
+
+Having finished drawing lines to these two textures, we run another GL program that merges both textures into a single one by using texture *A* for even lines and texture *B* for odd ones.
+
+In order to be able to render to a texture, we use a custom frame-buffer.
+
+For the first run, the input line has only one pixel lit, so it generates the commonly known Rule 30 pattern. Then, every 5 seconds, textures are reset and the input is randomly generated.
+
+\section integerLogicPrepareTextures Prepare Textures
+
+As already mentioned in \ref integerLogicOverview, there are two texture objects being used in the application. So the first step is to generate them and prepare for use. We use a *ping-pong technique* so we will use the corresponding names for variables that will store texture IDs to make the algorithm more clearere.
+
+Generate texture objects.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Generate texture objects
+
+Bind texture object to specific texture unit and set its property for the *ping* texture,
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Ping texture: Bind texture object to specific texture unit and set its property
+
+bind texture object to specific texture unit and set its property for the *pong* texture,
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Pong texture: Bind texture object to specific texture unit and set its property
+
+where texture units are being defined as
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Define texture units
+
+Please note, that only in the case of one of the textures (the *ping* one) is it already filled with data, in case of the *pong* one, there is only a data store being defined. The data used as an input for the *ping* texture is generated within the *generateRule30Input()* call.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Generate the original data for ping texture
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Generate input texture data
+
+In the application, we will use a *render to texture* technique, which is why we need to create a framebuffer object as well. Just to clarify: *rendering into texture* can be achieved by using (during a draw call) a framebuffer object (with the ID different from 0), to which there is a texture object bound.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Set up framebuffer object
+
+Then, if a framebuffer object is bound,
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Bind the framebuffer object
+
+we can call one of the functions shown below to indicate, in which texture object the result of rendering will be stored.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Bind ping texture to the framebuffer
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Bind pong texture to the framebuffer
+
+If we are no longer interested in rendering into a texture object and would like the rendering result to be displayed on screen, we need to use the default framebuffer object, which means we have to call
+
+\code
+    GL_CHECK(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+\endcode
+
+\section integerLogicProgramObjects Program objects
+
+In the application, we are using two program objects: the first one is responsible for generating data accordingly to *Rule 30*, while the second one is used to merging the calculated data and display the result on screen. The main mechanism of generating program objects looks like the following (the idea is shown for the first program object):
+
+ -# Create program object ID;
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Create program object
+
+ -# Create shader objects' IDs (should be called twice for *shaderType* equal to *GL_FRAGMENT_SHADER* and *GL_VERTEX_SHADER*);
+\snippet samples/tutorials/IntegerLogic/jni/Shader.cpp Create shader object
+
+ -# Set shader source; 
+\snippet samples/tutorials/IntegerLogic/jni/Shader.cpp Load shader source
+\snippet samples/tutorials/IntegerLogic/jni/Shader.cpp Attach shader source
+
+ -# Compile shader (it's always a good idea to check, whether the compilation succeeded: *GL_COMPILE_STATUS* set to *GL_TRUE*;
+\snippet samples/tutorials/IntegerLogic/jni/Shader.cpp Compile a shader
+\snippet samples/tutorials/IntegerLogic/jni/Shader.cpp Get compilation status
+
+ -# Attach shaders to program object;
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Attach shaders to program object
+
+ -# Link program object;
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Link program object
+
+ -# Use program.
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Select active program object
+
+The next thing to do is to retrieve locations of the uniforms and attributes that are used in the shaders. This can be achieved as shown below.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Retrieve attrib and uniform locations
+
+It's always a good idea to verify whether the attributes and uniforms are considered as active within the program object. This is why we need to check the returned location value (-1 location value means that the attribute or the uniform has not been found).
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Check location values
+
+Now, if you are interested in setting values for the attributes, and we know you are and would like to set quad coordinates and texture UVs, it's enough to prepare a *Vertex Array Object*.
+
+First of all, create the object
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Generate vertex array object
+
+and bind it.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Bind vertex array object
+
+Now, when a vertex array object became active, we can set the input data for it. It's achieved by using array buffer objects.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Generate buffer objects
+
+Please note that in this section we are describing only one program object, so we will discuss the usage of the first two buffer objects only (*linePositionBOID* and *lineUVBOID*).
+
+Fill one of the buffer objects with quad coordinates data.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Fill buffer object with quad coordinates data
+
+Fill the second one with texture UVs data.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Fill buffer object with texture UVs data
+
+The important thing you can find above is the fact that we are binding the attribute location with a specific input data set by calling *glVertexAttribPointer()*.
+
+If you would like to use the specific attributes input data during a draw call, you should remember to make the required vertex array object active for the draw call by calling *glBindVertexArray()*.
+
+If you now would want to set data for the uniforms, you should call one of *glUniform()* family function, as the examples shown below. The function that should be used depends on the uniform type. If the uniform is of a matrix4x4 type, we should call *glUniformMatrix4fv()*, a single float value: *glUniform1f()*, a texture sampler: *glUniform1i()*. If a uniform value is constant during the rendering process, we can set it once, if it's changing we should call the specific *glUniform()* function every time we want to update the uniform value.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Pass data to uniforms
+
+\section integerLogicRendering Perform the rendering
+
+The algorithm is based on the two main steps:
+ -# Generating data (rendering into texture)
+ -# Rendering textures on the screen
+
+The first step is considered as follows: we want to render a single row then, depending on the first row, we want to draw a second row and so on, till the whole screen is rendered. The problem is that, we cannot read from and render to the same texture object at the same time. This is why we need two texture objects, each of which will store the even or odd lines of data. So it looks like described below: we render the first row and store the result in the *ping* texture. Then we want to render a second line based on the data in the first one: in the program object we sample the *ping* texture and based on the retrieved data, we are generating the current line and store the result in the *pong* texture. Then, during third line rendering, we use *pong* texture as an input and store data in the *ping* texture. It seems to be complicated, however the concept is very simple and is shown in the code presented below. Please note that for each iteration, the input and output textures are switched. The input texture is updated by calling *glUniform1i()* and the output texture by calling *glFramebufferTexture2D()*.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Perform the offscreen rendering
+
+When this step is completed, we are ready to perform the second step. The main idea here is to take those two textures: the *ping* and the *pong* ones and merge them as shown below. Please note that the default framebuffer object is made active, which means the result will be shown on screen.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Perform textures' merging
+
+In the application we wanted to issue the algorithm many times based on the different input data. For the first time, we use the data generated as described in the previous section \ref integerLogicPrepareTextures. For each following iteration we use the data generated with the algorithm presented below.
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Generate input texture data for next steps
+
+and substitute the *ping* texture data with the new one by calling
+
+\snippet samples/tutorials/IntegerLogic/jni/Native.cpp Substitute ping texture data
+
+\image html IntegerLogic_result.png "The result of first and second pass."
+*/

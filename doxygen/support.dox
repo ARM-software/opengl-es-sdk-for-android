@@ -1,0 +1,20 @@
+/**
+\page support Support
+\brief Getting support for the OpenGL ES SDK for Android $(VERSION).
+
+\section supportLocal Local Help
+
+If you get stuck with tutorials, look at \ref gettingStartedGuideBuildingTheSamples to see the solutions.
+
+\section supportMaliDeveloper Mali Developer Forums
+
+For all support queries please visit the <a href="http://forums.arm.com/index.php?/forum/11-mali-developer-tools/">Mali Developer forums</a>.
+
+\if linux
+This is the OpenGL ES SDK for Android v$(VERSION).$(GIT_SHA) on Linux.
+\endif
+\if windows
+This is the OpenGL ES SDK for Android $(VERSION).$(GIT_SHA) on Windows.
+\endif
+Please quote this version when requesting support.
+*/

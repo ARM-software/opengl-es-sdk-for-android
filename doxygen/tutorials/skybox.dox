@@ -1,0 +1,52 @@
+/**
+\page skybox Skybox
+\brief This sample presents how to implement skybox using single cubemap texture.
+
+\section skyboxOverview Skybox Overview
+
+Skybox is a method of creating backgrounds, which allows the sky, distant mountains or buildings projected onto the cube's faces to create the illusion of three-dimensional surroundings. It contains six images with views from the center of the scene along the six directional axes. In order to implement a simple skybox we could draw a cube around the viewer and apply the cube map texture to it. Instead, our approach renders only one full screen quad. We cover the entire viewport by computing the texture coordinates at all four corners. Any part of the virtual cube that is outside the viewport will be clipped away. We can then transform the viewport's corners by the view matrix to orient the quad properly in world space. Both the vertex and the texture coordinates are hard coded into the vertex shader and there is no need to store them in the client's application memory.
+
+\section skyboxTextureSetup Texture Setup
+
+We use six RGB ppm images to initialize the texture for each face of the cube map. For this example, we aren't using mipmaps so only the base texture level (level 0) is loaded.
+As we are also overlaying the name of the sample onto the scene, blending has to be correctly set up.
+
+\section skyboxVertexShader Vertex Shader
+
+\code
+out     vec3 texCoord;
+uniform mat4 viewMat;
+
+void main(void)
+{
+     const vec3 vertices[4] = vec3[4](vec3(-1.0f, -1.0f, 1.0f),
+                                      vec3( 1.0f, -1.0f, 1.0f),
+                                      vec3(-1.0f,  1.0f, 1.0f),
+                                      vec3( 1.0f,  1.0f, 1.0f));
+
+    texCoord    = mat3(viewMat) * vertices[gl_VertexID];
+    gl_Position = vec4(vertices[gl_VertexID], 1.0f);
+}
+\endcode
+
+The cube's vertex position is mapped directly to the cube map texture. The array vertices contains 3D coordinates for each corner of the full screen quad. By multiplying each vertex with the view matrix (viewMat), we can calculate the texture coordinate of the cubemap that each vertex maps to.
+\section skyboxFragmentShader Fragment Shader
+
+\code
+in      vec3        texCoord;
+out     vec4        color;
+uniform samplerCube texCubemap; 
+
+void main(void)
+{
+    color = texture(texCubemap, texCoord);
+}
+\endcode
+
+We use the texture coordinates calculated in the vertex shader to sample from the cubemap texture, and write the result straight into the framebuffer.
+
+\section skyboxVisualOutput Visual Output
+You should see on the screen an output similar to:
+\image html Skybox.png
+
+*/

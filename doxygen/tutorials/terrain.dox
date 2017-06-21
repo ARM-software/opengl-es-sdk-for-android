@@ -1,0 +1,224 @@
+/**
+\page terrain Terrain Rendering with Geometry Clipmaps
+
+\brief This sample will show you how to efficiently implement geometry clipmaps using OpenGL ES 3.0. The sample makes use of 2D texture arrays as well as instancing to efficiently render an infinitely large terrain. The terrain is asynchronously uploaded to the GPU using pixel buffer objects. 
+
+\image html terrain.png
+
+\section terrainIntroduction Introduction
+
+\note This sample uses OpenGL ES 3.0.
+
+The source for this sample can be found in the
+\if windows
+*samples\\advanced_samples\\Terrain*
+\endif
+\if linux
+*samples/advanced_samples/Terrain*
+\endif
+folder of the SDK.
+
+\note This sample involves several advanced OpenGL techniques to achieve its goals:
+ -  Sampling textures in vertex shader
+ -  Instanced drawing
+ -  Uniform buffer objects
+ -  Pixel buffer objects
+ -  2D texture arrays
+ -  A frustum culling technique is applied as well, although that is a purely mathematical technique.
+
+\section terrainRepresentation Representing the Terrain
+The terrain representation is based on the paper of Losasso and Hoppe <a href="#ref1">[1]</a>.
+
+\image html clipmap.png
+
+The basic building block of the terrain is a tesselated square with N-by-N (in this implementation, 64-by-64) vertices.
+A tesselated square can be represented efficiently with a single triangle strip.
+
+Generate vertex data for a block:
+\snippet samples/advanced_samples/Terrain/jni/GroundMeshSetup.cpp Generating vertex buffer
+
+Generate index buffer for a block:
+\snippet samples/advanced_samples/Terrain/jni/GroundMeshSetup.cpp Generating index buffer
+
+This block lies on the horizontal plane (XZ-plane) and is stitched together in a grid to draw an arbitrarely vast terrain as seen above.
+
+To avoid aliasing and excessive detail in drawing, terrain which is drawn farther away requires lower resolution.
+This is achieved by scaling up the basic N-by-N block in powers of two.
+
+\note Like mipmap levels, clipmap level 0 denotes the level with highest detail.
+In this sample, 10 clipmap levels in total are used.
+
+When stitching together the clipmap, there are small holes which must be filled.
+This is done by drawing smaller "fixup" and/or "trim" regions as seen above.
+Strips of degenerate triangles must also be drawn on the edges where the clipmap level changes.
+
+The degenerate triangles which connect level N and N + 1 are drawn using vertices from level N.
+Trim regions which connect level N and N + 1 are drawn using vertices from level N + 1.
+
+The exact layout of blocks must be carefully planned to ensure a seamless terrain.
+An important thing to note is that the distance between two adjacent N-by-N blocks is N - 1.
+Most offsets seen in the sample code use this distance with the occasional 2 texel offset to account for the width of the horizontal and vertical fixup regions.
+
+The vertex buffer along with the index buffer is uploaded once to the GPU at startup.
+
+\section terrainGridSnap Snapping the Terrain to a Grid
+
+Positions of blocks are moved along with the camera in discrete steps.
+Moving in discrete steps is important to avoid a vertex "swimming" effect.
+As the camera moves, lower clipmap levels can change position while higher levels don't
+and therefore the trim region used to connect two clipmap levels might have to change to be able to fill the entire terrain.
+
+On every frame, clipmap level offsets are computed as such:
+\snippet samples/advanced_samples/Terrain/jni/GroundMesh.cpp Snapping clipmap level to a grid
+
+Offsets of blocks within a clipmap level are relative to the clipmap level offset.
+
+\section terrainVertexTextures Sampling Textures in Vertex Shader
+OpenGL ES 3.0 added guaranteed support for sampling textures in the vertex shader.
+This allows the application to dynamically update vertex data in ways which would
+have been costly with older methods. The vertex buffer is fixed, and never has to
+be updated. (see \ref advanced_samples/Terrain/jni/shaders.h)
+
+While the vertex buffer represents the fixed grid structure in the horizontal plane, the vertical Y component
+is dynamic and is sampled from a heightmap texture.
+
+\note Automatic mip-mapping cannot be used in vertex shaders (no derivatives).
+If sampling from a mip-mapped texture, an explicit level-of-detail must be provided, by using e.g. **textureLod**. In this sample however, mipmapped textures are not used, so using **texture** directly is safe.
+
+\section terrainHeightmapRepresentation Heightmap Representation
+
+Each clipmap level is backed by its own 255x255 texture.
+As the size for each level is the same, it is convenient and efficient to use
+a 2D texture array, introduced in OpenGL ES 3.0.
+Using a texture array avoids having to bind different textures
+for drawing different clipmap levels which reduces the number of draw calls required.
+
+\snippet samples/advanced_samples/Terrain/jni/Heightmap.cpp Initializing texture array
+
+\section terrainHeightmapUpdate Heightmap Update
+Using the clipmap method, only parts of the terrain will be visible in a LOD
+at a time. As the camera moves around, new area has to be updated in the
+heightmap textures to give the illusion of a seamless, never-ending terrain.
+
+The heightmap can be updated either by uploading new data from pre-computed
+heightmaps or using frame buffer objects with shaders to update the heightmap procedurally.
+
+\snippet samples/advanced_samples/Terrain/jni/Heightmap.cpp Update region
+
+This sample implements heightmap update by copying samples from a pre-computed
+1024x1024 buffer which is generated by band-pass filtering white noise.
+The copy is done asynchronously using pixel buffer objects.
+
+The clipmap rendering code uses the GL_REPEAT texture wrapping feature
+to ensure that only a small part of the texture has to be updated every time the camera moves.
+
+The pre-computed heightmap is repeated to make the terrain infinite.
+
+\note Along with heightmap, a corresponding normal map is usually used.
+For clarity, this is omitted. Normal maps can be computed on-the-fly in the vertex shader by sampling the heightmap, or updated along with the heightmap. The fragment shader in this sample assigns color based
+on the height of the vertex.
+
+\section terrainHeightmapBlending Heightmap Blending
+The resolution of the clipmap abruptly changes resolution between levels.
+This discontinuity in detail results in artifacts.
+To avoid this, two heightmap levels (current and next) are sampled and blended together in the vertex shader.
+
+To avoid filtering the heightmap value from the next clipmap level, the filtered version of the heightmap is precomputed and included along with the height of the current level.
+
+\snippet samples/advanced_samples/Terrain/jni/Heightmap.cpp Compute heightmap 
+
+\section terrainFrustumCulling Frustum Culling
+When drawing the terrain, most of the terrain will not be visible.
+To improve performance it is important to avoid drawing blocks which
+will never be shown.
+
+This terrain sample implements simple frustum culling based on axis-aligned bounding boxes.
+
+The idea of this frustum culling implementation is to represent all planes
+of the camera frustum as plane equations. When an axis-aligned box is tested for visibility, we check every corner of the bounding box against the frustum planes, one plane at a time.
+
+\snippet samples/advanced_samples/Terrain/jni/Frustum.cpp Test for intersection
+
+If every corner of the bounding box is on the "wrong" side of a plane (negative distance), we can prove that the mesh contained inside the box will never be drawn. Thus, the mesh can be culled if we can prove invisibility for at least *one* of the frustum planes.
+
+To obtain the plane equations for the frustum in world space,
+an inverse transform from clip space is done.
+
+\snippet samples/advanced_samples/Terrain/jni/Frustum.cpp Compute plane equations
+
+\section terrainUniformBuffers Using Uniform Buffers
+
+OpenGL ES 3.0 introduced a new way of passing uniform data to shaders.
+Instead of making many calls to **glUniform\*** when uniforms change,
+it is possible to let the uniform data be backed by a regular OpenGL buffer object.
+
+A very simple example of this (GLSL) is:
+\code
+#version 300 es
+layout(std140) uniform; // Use std140 packing rules for uniform blocks.
+in vec4 aVertex;
+uniform VertexData
+{
+    mat4 viewProjection; // Let the view-projection matrix be backed a buffer object.
+} vertex;
+
+void main()
+{
+    gl_Position = vertex.viewProjection * aVertex;
+}
+\endcode
+
+\note It is important to note that while the uniform buffer data was accessed via the name **vertex**,
+for interfacing with other shaders and/or OpenGL, the *block name*, **VertexData** is used.
+
+It is possible to use multiple uniform blocks inside a shader, which makes it necessary to
+access uniform blocks by index.
+
+After linking the shader program, we can query it with:
+
+\code
+GLuint block = glGetUniformBlockIndex(program, "VertexData"); // Note the use of VertexData and not vertex.
+\endcode
+
+Now, we want to specify where the uniform buffer will pull data from:
+\code
+glUniformBlockBinding(program, block, 0);
+\endcode
+
+The uniform buffer now sources data from binding 0.
+To bind a buffer for the shader to use, we need to use the new
+indiced versions of **glBindBuffer**.
+
+\code
+glBindBufferBase(GL_UNIFORM_BUFFER, 0, buffer_object); // Binds the entire object.
+glBindBufferRange(GL_UNIFORM_BUFFER, 0, buffer_object, offset, size); // Binds a range of the object.
+\endcode
+
+\note These new calls only sets state for shaders. If the buffer is to be used with regular OpenGL calls such as uploading data, the normal **glBindBuffer** is still used.
+
+\code
+// Initialize an UBO.
+glBindBuffer(GL_UNIFORM_BUFFER, buffer_object);
+glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
+\endcode
+
+\note **glBindBufferRange** requires a certain alignment on the offset and size.
+To query exactly which alignment is required, **glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, ...)** can be called.
+
+\section terrainInstancing Drawing the Terrain with Instanced Drawing
+The clipmap consists of simple building blocks which are drawn many times.
+To drastically reduce the number of draw calls required, the blocks can be drawn using
+instancing, which was introduced in OpenGL ES 3.0.
+
+Uniform buffer objects are used to access per-instance data in the vertex shader.
+When drawing instanced, a built-in variable **gl_InstanceID** is available, which can be used
+to access an array of per-instance data in a buffer object.
+
+\snippet samples/advanced_samples/Terrain/jni/GroundMesh.cpp Rendering the entire terrain 
+
+\snippet samples/advanced_samples/Terrain/jni/GroundMesh.cpp Render scene
+
+\section terrainReferences References
+<a name="ref1">[1]</a> http://research.microsoft.com/en-us/um/people/hoppe/geomclipmap.pdf 
+
+*/

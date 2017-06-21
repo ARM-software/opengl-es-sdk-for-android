@@ -1,0 +1,91 @@
+/**
+\page textureCube Texture Cube
+\brief How to start texturing your objects to make them look realistic.
+
+\section textureCubeIntroduction Introduction
+
+The source for this sample can be found in the
+\if windows
+*samples\\tutorials\\TextureCube*
+\endif
+\if linux
+*samples/tutorials/TextureCube*
+\endif
+folder of the SDK.
+
+Up until this point we have only used a single colour to represent a triangle in our examples. This is fine for simple programs but what happens if you want more than one colour in a small area. Sure you could just have millions of triangles each representing one colour but this is impractical. Instead what we need to use is a texture.
+
+A texture can be thought of as like a poster or an image that you want your triangle to display. This way one triangle can represent many different colours. These images can be any image format that you like all you need is the code to load that particular image format in. For this example we are going to use the RAW format as it is the simplest but feel free to add code to use any image format you want.
+
+At the end of this tutorial you should have the same spinning cube as the previous example but nicely textured.
+
+\section textureCubeNewProject Setting up the Project.
+
+For this project we will carry on from the previous cube example. This makes sense as because we are going to be using a cube in this example. Feel free to copy the previous project so in the end you can have both.
+
+From the previous project we need to add 2 new native files. Like the previous example we are not going to touch the Java side as the setup code stays the same. The two added native files are Texture.cpp and Texture.h so right click on your new or existing project and select new file. Navigate to the jni folder and select the filename to be Texture.cpp and repeat the process for Texture.h.
+
+\section textureCubeLoadTexture Load Texture Function
+
+Our first function to look at is the function where we load our texture. This is where we load our image and convert it to a format that OpenGL ES understands. We then need to load the texture into GPU memory so that we can use the image in our shaders.
+
+\snippet tutorials/TextureCube/jni/Texture.cpp includeTextureDefinition
+
+First we have an include to the header file which is pretty standard. Notice how our loadSimpleTexture function returns a GLuint. This is the ID of the texture once it is loaded so that we can reference it later in the code. The first line of the function defines a variable to temporarily hold that value.
+
+The next variable is the actual image data. As mentioned earlier we are going to use the RAW format which is simply the colour data one after the other. Now in OpenGL ES we expect the beginning of the image to represent the bottom left hand corner instead of the default top left hand corner. This is why we define the bottom row, then the middle and finally the top. Each number represents one channel for the RGBA format. So if we take the first line we have 18 in the red channel, 140 in the green channel, 171 in the blue channel and 255 in the Alpha channel. These numbers are out off 255; 0 being a lack of colour and 255 being full colour. The 255 in the Alpha channel makes the whole texture opaque.
+
+\snippet tutorials/TextureCube/jni/Texture.cpp placeTextureInMemory
+
+We now need to upload the image data into graphics memory. To start with we want to pack our data tightly to conserve space so we use the glPixelStorei function. The next line generates a texture ID that we can place in our variable we defined before. We then return this at the end of the function so that other parts of our program can use the texture. Its parameters are the number of textures to generate and a place to put them.
+
+We then need to activate a texture unit and then bind a specific unit type. The amount of texture units you can have is hardware specific but there are at least 8. As for the texture unit type we have two choices: GL_TEXTURE_2D or GL_TEXTURE_CUBE_MAP. For now we always want to pick GL_TEXTURE_2D as it is the most common. Now any subsequent texture GL operations will happen to the texture that we created in glGenTextures. From here we can upload the actual texture data.
+
+We upload textures using the function glTexImage2D. The first parameter is again the Texture Unit that we want to use. The next parameter is the MipMap level number. Mipmapping is an important technique and will be spoken about in a later tutorial. For now you always want to set this value to 0. Next is the internal format that we should use. In OpenGL ES 2.0 the internal format and the format of the image must be the same as there is no conversion method. This is why parameter 7 matches this one.
+
+Parameters 4 and 5 represent the width and height of the image. In this case it is a 3 x 3 image as it would have taken too long to manually write the RAW format for a bigger image. Parameter 6 is the border you would like around the image, this has to be 0 on OpenGL ES. The final two parameters are the type of the data we are going to use and then the data itself.
+
+The final two function calls define what happens when we need to stretch or shrink the image. For instance each of our cubes faces are not going to be 3 x 3 pixels. This means we are going to have to stretch the image. We have told OpenGL ES in this instance to use the pixel that is closest to the one it should pick. So roughly the cube will be divided into 9 equal portions of colour.
+
+\section textureCubeShaders Changes in the Shaders
+
+\snippet tutorials/TextureCube/jni/Native.cpp shaders
+
+Now we need to edit the shaders to use our new texture. Note how we have removed all references to the colour attribute from the previous example. This is because we no longer need to provide per vertex colour data if we are going to use textures. We do however, need to supply a per vertex texture coordinate. A texture coordinate says where in the texture this particular vertex should take its colour from. Think of it like a mapping. Texture coordinates go from 0,0 in the bottom left hand corner to 1,1 in the top right hand corner. More on this in the section where we define our per vertex texture coordinates. For now all we need to know is we need another vec2 attribute in the shader and we need to pass them to the fragment shader by way of a varying.
+
+In the fragment shader we have a new uniform that is of type sampler2D. This is used to show which texture unit we want to use. In this case it isn't that important as we only have one texture.
+
+The code in the fragment shader is still very simple. We just set the final colour to be the result of a function called texture2D. This function takes in 2 parameters: the sampler and the texture coordinate which will tell the unit where to go in the texture.
+
+\section textureCubeAttributes Changes to Setup Graphics
+
+The first thing we need to do is get rid of anything related to colour from the previous example and add locations for the texture coordinates and the sample location. We also need to call the load texture function. Note you need to add a GLuint textureId to the list of the global variables that are defined above the Setup Graphics function.
+
+\snippet tutorials/TextureCube/jni/Native.cpp setupGraphicsUpdate
+
+\section textureCubeCordinates Texture coordinates
+
+We mentioned earlier that we need to have a texture coordinate per vertex so that OpenGL ES knows how to map the image onto the triangles that we are going to draw. The good news is we can define the texture coordinates exactly the same way we did the vertices. Meaning we only need to define 4 per face.
+
+Remember that we go from 0 to 1 and it starts in the bottom left hand corner. If we take the front face we can see that the top left vertex -1.0, 1.0, 1.0 matches the top left texture coordinate of 0.0, 1.0. This theme is present in all of the vertices.
+
+\snippet tutorials/TextureCube/jni/Native.cpp verticesAndTexture
+
+\section textureCubeEnabling Enabling Attributes and Passing Sampler Locations
+
+The final thing we need to do is to enable the texture coordinate attributes and to set the sampler from the fragment shader. Now as we have only one texture, GL_TEXTURE0, we should use that one.
+
+\snippet tutorials/TextureCube/jni/Native.cpp enableAttributes
+
+That is all there is to it. You should be able to build this application using the same method as before and have a lovely textured cube. Here is a quick summary of the steps of loading a texture:
+ -  Load the file from your system and convert it into a format OpenGL ES can understand.
+ -  Generate a texture object and activate the desired texture unit.
+ -  Load the texture data into the texture unit using glTexImage2D
+ -  Set the sampling methods with glTexParameteri
+ -  Load your texture coordinates into the system per vertex.
+ -  Add a sampler object to your fragments shader.
+
+\section textureCubeBuildRun Building and Running the Application
+
+Follow the \ref gettingStartedGuide from \ref gettingStartedGuideBuildingTheSamples onwards to build and run the application.
+*/

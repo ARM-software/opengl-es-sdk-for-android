@@ -1,0 +1,66 @@
+/**
+\page gettingStartedGuide Getting Started Guide
+\brief Everything you need to know to go from scratch to building Android applications.
+
+\section gettingStartedGuideIntroduction Introduction
+
+This guide helps you get up and running with developing for your Mali GPU
+based platform running Android. It helps you to download and configure the
+tools so you can begin to develop apps for your
+platform. The guide will then talk you through importing a basic Android
+project, building it and then running the project on a your target platform.
+It is assumed you are either running Linux or
+Windows as your host platform.
+
+\section gettingStartedGuideGettingAppropriateTools Getting the Appropriate Tools
+
+You require a few tools for Android Development. Most of these are in one place.
+Download Android Studio from <a href="https://developer.android.com/studio/index.html">here</a>.
+
+To use the full power of your Mali GPU you also need the Android NDK.
+You can download this from <a href="http://developer.android.com/ndk/index.html">here</a>.
+Just select the appropriate link for your OS and you will be presented with an archive with the relevant
+files.
+
+To put your application onto a real device you must install drivers.
+You must also turn on USB debugging on your device for this to work. Do this by:
+
+ -# Open *Settings* and then *Developer Options*.
+ -# Activate the USB debugging option.
+
+\section connecting Connecting your Device
+
+\subsection connectingWindows Windows
+To install the standard USB drivers go into the Android SDK Bundle directory and click on the SDK Manager.
+From here you are given a list of options that you can install. Under the Extras section you can find the
+Google USB Driver. Install this and you can use your device with your computer.
+
+\subsection connectingLinux Linux
+Your device should be found automatically by a Linux system but there are no permissions associated to it.
+To give your device the appropriate permissions edit the file:
+
+\code
+/etc/udev/rules.d/51-android.rules
+\endcode
+
+If this file does not exist, create it. Inside the file you must add a rule for each Android device you
+intend to use.
+For example, this is a sample rule created for the Allwinner platform:
+
+\code
+SUBSYSTEM=="usb",ATTR{idVendor}=="18d1",ATTR{idProduct}=="0003",MODE="0600",OWNER="YOURUSERNAME"
+\endcode
+
+Replace **YOURUSERNAME** with your username on your system.
+
+\section gettingStartedGuideBuildingTheSamples Building Android samples
+
+To build the sample applications:
+ -# Open Android Studio.
+ -# Click on "Open an existing Android Studio project" and point to the directory where you extracted the Mali Android samples.
+ -# Now you can select individual samples and run them directly on your target device.
+
+\section gettingStartedGuideNextSteps Next Steps
+
+Now move on to making your \ref firstNative.
+*/
