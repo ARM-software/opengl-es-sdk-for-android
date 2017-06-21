@@ -1,0 +1,164 @@
+/** \page occlusionQuery Occlusion Query
+
+\brief Demonstration of Occlusion Query functionality in OpenGL ES 3.0.
+
+\section occlusionQueryIntroduction Introduction
+
+It's assumed that you have read and understood all of the mechanisms described in \ref assetLoading,\ref simpleTriangle and \ref textureCube.
+
+\section occlusionQueryOverview Overview
+
+\image html OcclusionQuery_android.png "We are rendering a horizontally located plane, on top of which we lay some rounded cubes."
+
+The main purpose of the application is to show the difference in performance when the occlusion query mode is on or off. If the occlusion query mode is on, then only the cubes that are visible to the viewer are rendered. In the other case, when the occlusion query mode is off, then all of the cubes are rendered, which leads to a massive decrease in performance.
+
+ - In the case where occlusion query mode in on:  if there is a small number of objects visible for a viewer, the application runs very smooth; the larger the number of the visible objects, the slower the animation is, but still the performance is better than in the following case.
+ - In the case where occlusion query mode in off: the performance is constant (very low), regardless of the number of visible cubes (all of them are always rendered).
+
+                                        
+We are rendering rounded cubes - the objects are more complicated than the normal cubes, which means the time needed for rendering this kind of objects is longer. We are using this fact to demonstrate the occlusion query mode. When we want to verify whether the object is visible for a viewer, we can draw a simpler object (located in the same position as the requested one and being almost of the same size and shape), and once we get the results, we are able to render only those rounded cubes which passed the test.
+
+There is also text displayed (at the bottom left corner of the screen) showing whether the occlusion query mode is currently on or off. The mode changes every 10 seconds.
+
+\section occlusionQueryRenderGeometry Render a Geometry
+
+In the application we are rendering a plane, cubes and rounded cubes. The "normal" cubes are rendered only in occlusion query mode to verify whether the object is visible for a viewer, but they are not visible on the screen: more detail is provided in the following section \ref occlusionQueryOcclusionQueries.
+
+The first step we should take is to generate the coordinates of the objects we would like to render and prepare them for the draw calls. Let's describe the mechanism based on an example of a plane object as all of the objects should be prepared in the same way.
+
+We want to draw a plane which is laid horizontally, which in the 3D space means it should be located in XZ space. Please note that there will also be lighting applied, which means that we will need normals as well.
+
+\image html OcclusionQueriesGeometry_plane.png "Schema presenting plane vertices in XZ space."
+
+The basic OpenGL ES rendering technique is based on drawing triangles that make up a requested shape. This will be our next step. It's important to mention here that whilst describing plane triangle vertices, you should follow the clockwise or counter-clockwise order, otherwise OpenGL ES will have trouble in detecting the front and back faces. In this example we are using clockwise (CW) order to describe plane coordinates as this is the default for OpenGL ES.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Generate triangular representation of a plane
+\snippet samples/tutorials/OcclusionQueries/jni/PlaneModel.cpp Generate triangular representation of a plane
+
+We will need plane normals as well.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Get plane normals
+\snippet samples/tutorials/OcclusionQueries/jni/PlaneModel.cpp Get plane normals
+
+Once we have generated the plane coordinates we should focus on the API. We need buffer objects to store the generated data. But we will need Vertex Array objects as well to easily determine which vertex data (stored in buffer objects) should be used for a specific draw command. As written in the OpenGL ES 3.0 documentation: *The buffer objects that are to be used by the vertex stage of the GL are collected together to form a vertex array object*. To generate Vertex Array object we need to call
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Generate Vertex array object for plane geometry
+
+As mentioned before, we will need buffer objects to store generated data. To create ones we need to issue
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Generate buffer objects for plane geometry
+
+What we need to do now is to copy plane coordinates and plane normals to the specific buffer objects. 
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Copy plane coordinates to the buffer object
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Copy plane normals to the buffer object
+
+To define an array of generic vertex attribute data, we need to call
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Set vertex attrib pointer for plane coordinates
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Set vertex attrib pointer for plane normals
+
+Please note that these commands should be called for a specific buffer object being currently bound, which means the call hierarchy should look like follows
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Copy plane coordinates to the buffer object
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Set vertex attrib pointer for plane coordinates
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Copy plane normals to the buffer object
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Set vertex attrib pointer for plane normals
+
+In the *glVertexAttribPointer()* calls we use *verticesAttributeLocation* and *normalAttributeLocation* as arguments. These values indicate the locations of the attributes within a program object that are used for rendering the specific geometry. We will describe the problem in more details at the end of this section.
+
+The next step is to bind vertex array object
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Bind vertex array object
+
+and enable vertex attrib arrays
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Enable plane vertex attrib arrays
+
+When we want to render the plane, we need to make sure that the specific vertex array object is currently bound and then issue the draw call.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Draw the plane
+
+At this point, the reader should be already aware of how to prepare and use program objects. Let us briefly describe the mechanism.
+
+ -# Create program object:
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Create program object
+ -# Create shader object:
+\snippet samples/tutorials/OcclusionQueries/jni/Shader.cpp Create shader object
+ -# Set shader source:
+\snippet samples/tutorials/OcclusionQueries/jni/Shader.cpp Attach shader source
+Please note that the *strings* variable is storing the shader source read from a file.
+\snippet samples/tutorials/OcclusionQueries/jni/Shader.cpp Load shader source
+ -# Compile shader:
+\snippet samples/tutorials/OcclusionQueries/jni/Shader.cpp Compile a shader
+It's always a good idea to check whether compilation succeeded by checking *GL_COMPILE_STATUS* (*GL_TRUE* is expected).
+\snippet samples/tutorials/OcclusionQueries/jni/Shader.cpp Get compilation status
+
+
+Once you have called the functions for both fragment and vertex shaders, you should now attach both to a program object,
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Attach vertex and fragment shader objects to rendering program
+
+link the program object,
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Link the program object
+
+and set the program object to be used (active).
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Set active program object
+
+The *verticesAttributeLocation* and *normalAttributeLocation* arguments used in the *glVertexAttribPointer()* calls are attrib locations which are retrieved with the following call.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Get program attrib locations
+
+The second argument corresponds to the attribute name used in the vertex shader.
+
+Vertex shader code
+
+\snippet samples/tutorials/OcclusionQueries/assets/vertex.vert Vertex shader code
+
+Fragment shader code
+
+\snippet samples/tutorials/OcclusionQueries/assets/fragment.frag Fragment shader code
+
+\section occlusionQueryOcclusionQueries Occlusion Queries
+
+As already mentioned before, the main purpose of the application is to show the difference in the performance when the occlusion query mode is on or off. The occlusion query mechanism is used to verify whether an object is visible for a viewer or if it is occluded by other objects (in this case there is no need to render it as we are not able to see it anyway). If all of the objects which are not visible are ignored, then the application runs much faster in comparison to rendering all of the objects. This is where we are able to use an optimization trick. We want to render rounded cubes on a screen, which is rather a complicated geometry and rendering it takes some time. But we can use a very similar shape, that is much easier to render: the normal cube, only to verify the occlusion. But let us describe the problem in details.
+
+First of all, we need to generate the query objects.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Generate query objects
+
+When we want the occlusion query mode to be issued, we are render the normal cubes as well, so we need to set a proper vertex array object to be active.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Bind normal cubes vertex array object
+
+We don't want the normal cubes to be visible on screen, this is why we are calling
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Set color mask to GL_FALSE
+
+Then we can enable the query test and render each cube (separately).
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Issue the occlusion test
+
+Then we restore the color mask, so that the next draw call results will be visible on screen.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Set color mask to GL_TRUE
+
+We would like to draw the rounded cubes now, so the proper vertex array object should be used.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Bind rounded cubes vertex array object
+
+Now, for each cube, we need to verify whether it should be rendered or not. We need to get the query result.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Check query result
+
+And in case, the *GL_TRUE* is returned (which means the cube is visible), we can issue the draw call
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Draw rounded cube
+
+In the application, we are doing one more thing to make the occlusion test work properly. We are sorting the cubes' positions from the nearest to the furthest (relative to the viewer's position). This should be issued before the occlusion test.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Sort positions
+
+If we now would want to turn off the occlusion query mode, we should just simply render all of the rounded cubes.
+
+\snippet samples/tutorials/OcclusionQueries/jni/Native.cpp Draw for disabled occlusion query mode
+*/

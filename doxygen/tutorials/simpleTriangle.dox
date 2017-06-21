@@ -1,0 +1,150 @@
+/**
+\page simpleTriangle Simple Triangle
+\brief How to create your first triangle.
+
+\section simpleTriangleIntroduction Introduction
+
+The source for this sample can be found in the
+\if windows
+*samples\\tutorials\\SimpleTriangle*
+\endif
+\if linux
+*samples/tutorials/SimpleTriangle*
+\endif
+folder of the SDK.
+
+This tutorial will take the application we created in \ref graphicsSetup and teach you how to draw a
+simple red triangle to the screen. Basic drawing commands will be described and there will also be a brief
+introduction to both fragment and vertex shaders. No changes are needed to the Java side of the
+application, all the changes that happen are in the native side.
+
+\section simpleTriangleNewProject Creating a New Project
+
+Like the projects that come before it. The previous project will be a starting point for this project. So
+either copy the project or create a completely new project and include source files from the previous
+project. The project should be called **SimpleTriangle** and the package name should be called
+*com.arm.malideveloper.openglessdk.simpletriangle*. Finally the activity class (previously *GraphicsSetup.java*) should be
+renamed **SimpleTriangle.java** using Eclipse (this ensures references to the activity get updated elsewhere in the project).
+
+\section simpleTriangleNativeIncludes Native Includes
+
+To allow us to do a bit more than just use the Android logging functions we have included some
+of the standard C includes like stdio.h and math.h. As we are also doing graphics now in our native
+application we have also included some of the OpenGL ES 2.0 headers. These should be included in all of your
+graphics applications.
+
+\snippet tutorials/SimpleTriangle/jni/Native.cpp Includes
+
+There are a few things we need to do here we need to create a fragment and vertex shader.
+These can be thought of as little programs each with a main function that dictates what your shaders will do.
+In the vertex shader you need to output a final position of a vertex and in the fragement shader you
+need to output a final colour that will be the colour of the pixel in a given scene. More on this later.
+
+\section simpleTriangleVertexFragment Vertex and Fragment Shader Loading
+
+\snippet tutorials/SimpleTriangle/jni/Native.cpp Vertex source
+
+This is the source code for your vertex shader. The first line declares vPosition as an attribute. This is
+an input to the shader and you will have to provide the data to the shader seperately. This will be the
+location of each of your verticies that you want to be drawn to the screen. As you can see the next lines
+are just a standard function that looks like anything you may create in C. The only line in this function
+sets a variable called gl_Position to the value of vPosition. As mentioned earlier if you don't do anything
+else in your vertex shader you need to set the final position of the vertex. This is always what you set
+the value of gl_Position to.
+
+\snippet tutorials/SimpleTriangle/jni/Native.cpp Fragment source
+
+This is the source code for your fragment shader. The first line is required because you need to set the
+precision of your shader. This can be either lowp, mediump or highp. Again after this there is a normal
+function definition just like the one that you created for your vertex shader. The only line in this shader
+sets gl_FragColor to a colour. In this case the colour is red. The 4 numbers in the Vec4 respond to the
+RGBA colour space we selected earlier and you can pick a number between 0.0 and 1.0. So in this case the
+red channel is 1.0 (the maximum value). The green and blue channels are 0.0 (the minimum values). The alpha
+channel is set to 1.0. Note you can have any number you want between 0.0 and 1.0 for these values.
+
+\snippet tutorials/SimpleTriangle/jni/Native.cpp loadShader
+
+Now it is time to create a function that will load each of our shaders and compile them into a form that
+can run on the GPU. First of all we need to create a shader using the OpenGL ES API. As long as we managed
+to get a valid shader object we then select the source that we are going to use for this shader. This will
+typically be one of the char arrays that we defined earlier for our vertex and fragement shader. We then
+need to check if compilation was successful as with any of our programs we have written, something can go
+wrong.
+
+If for some reason the compilation does go wrong. We need to find out why and see what errors are produced
+as otherwise we will be shooting in the dark. So we first take the length of the information string and
+then create a buffer of that length. We then retrieve the string itself and display it as an error using
+the Android logging method again. We then free the buffer as we have no other use for it. If there was an
+error we return 0, otherwise we return the shader.
+
+\snippet tutorials/SimpleTriangle/jni/Native.cpp createProgram
+
+We now need to create a program. A program can be thought of as something that holds your shaders. It
+requires a vertex shader and a fragment shader. So first we load each of the shaders in turn and make sure
+that each of them is valid. We then try to create a program. If this works, we attach each of the shaders to
+the program. We then link the program. You can think about this like a standard linker. Again this can fail
+as often as a regular linker can so we need to make sure that the link status was sucessful. If it wasn't we
+again find the length of the information surrounding the failure and then create a buffer to display it. If
+all was successful we return the program, otherwise we return 0.
+
+\section simpleTrianglesimpleTriangleandRendering Graphics Setup and Rendering
+
+\snippet tutorials/SimpleTriangle/jni/Native.cpp setupGraphics
+
+We now define two global variables. The first is the program. This will hold the value of the program that
+will be created by calling the above functions. The second will hold the location of where the GPU will be
+expecting the vertex data that is required for our shader.
+
+This function just does the final bit of setup. We first create the program with the two character arrays
+defined at the start. We make sure that the program is created and we then query OpenGL ES to get the
+location of where we should put our vPosition data. Note the quotes must match the attribute name we used
+in the shader itself. We then do a call to glViewport passing in the width and height of our surface. That's
+all there is to it for setup. All we need to do now in the code is to create the render function that is
+responsible for drawing and the functions that link to the Java layer.
+
+\snippet tutorials/SimpleTriangle/jni/Native.cpp renderFrame
+
+The first part of this section of code defines are verticies for the triangle that we are trying to draw.
+The space in which we have to draw spans from -1.0f to 1.0f. The bottom left corner of the screen is -1.0f
+-1.0f and the top right hand corner of the screen is 1.0f, 1.0f. Because we are only drawing a
+triangle and a triangle is a 2D shape we don't need to worry about the Z coordinate. So if we look at the
+coordinates specified we have 0.0f, 1.0f which would be a vertex at the middle top portion of the screen.
+-1.0f, -1.0f which will be a coordinate at the bottom left of the screen and finally 1.0f, -1.0f which
+will be a coordinate at the bottom right of the screen.
+
+Now for the most exciting function we will create: the one responsible for drawing. The first thing we do
+is set the clear colour to black. You can set this colour to anything you like and OpenGL ES will set the
+scene to that colour on every glClear command. After this we call glClear which really marks the start of
+our scene. We say that we are interested in clearing both the depth buffer and the colour buffer.
+
+We then need to select which program we want to use. A typical application may have multiple shaders
+and as a result, multiple programs. For instance you may want to use a different shaders to draw water,
+a house, or some grass. We then need to link the attribute we mentioned in the shader to the actual
+triangle data defined above. We do this by first providing the location the GPU expects the data. We then
+say each vertex is going to have 2 elements to it which are floats.  The next parameter says that our data
+is already normalized so there is no need to do it for us and that there is no stride between our
+verticies. The final parameter is a pointer to the actual triangle vertices.
+
+We then need to enable the array to signify it's ready to be used. The final line is the function that
+actually draws the triangle. We say that we want to draw an array of verticies and they should be drawn as
+triangles starting at element 0 in the array and there are 3 verticies to be drawn.
+
+\section simpleTriangleFunctionDefinitions Function Definitions
+
+The final thing we need to do is adjust a function definitions defined in the previous tutorial to call our
+newly defined functions.
+
+\snippet tutorials/SimpleTriangle/jni/Native.cpp Native functions
+
+As you can see we simply call the setupGraphics function in our init function and we call renderFrame in
+our step function. It's that simple. All we need to do now is adjust our Android Makefile slightly and all
+our hard work will have paid off when we can render a red triangle.
+
+\section simpleTriangleBuildRun Building and Running the Application
+
+Follow the \ref gettingStartedGuide from \ref gettingStartedGuideBuildingTheSamples onwards to build and run the application.
+
+\section simpleCubeExampleNextSteps2 Next Steps
+
+Now move on to creating a 3D object and adding animation in \ref simpleCube.
+*/

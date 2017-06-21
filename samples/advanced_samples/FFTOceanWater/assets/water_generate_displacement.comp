@@ -1,0 +1,111 @@
+#version 310 es
+
+/* Copyright (c) 2015-2017, ARM Limited and Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Permission is hereby granted, free of charge,
+ * to any person obtaining a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+layout(local_size_x = 64) in;
+
+layout(std430, binding = 0) readonly buffer Distribution
+{
+    vec2 distribution[];
+};
+
+layout(std430, binding = 1) writeonly buffer DisplacementFFT
+{
+    uint grads[];
+};
+
+layout(location = 0) uniform vec2 uMod;
+layout(location = 1) uniform float uTime;
+
+vec2 alias(vec2 i, vec2 N)
+{
+    return mix(i, i - N, greaterThan(i, 0.5 * N));
+}
+
+vec4 cmul(vec4 a, vec4 b)
+{
+    vec4 r3 = a.yxwz;
+    vec4 r1 = b.xxzz;
+    vec4 R0 = a * r1;
+    vec4 r2 = b.yyww;
+    vec4 R1 = r2 * r3;
+    return R0 + vec4(-R1.x, R1.y, -R1.z, R1.w);
+}
+
+vec2 cmul(vec2 a, vec2 b)
+{
+    vec2 r3 = a.yx;
+    vec2 r1 = b.xx;
+    vec2 R0 = a * r1;
+    vec2 r2 = b.yy;
+    vec2 R1 = r2 * r3;
+    return R0 + vec2(-R1.x, R1.y);
+}
+
+uint pack2(vec2 v)
+{
+    return packHalf2x16(v);
+}
+
+uvec2 pack4(vec4 v)
+{
+    return uvec2(packHalf2x16(v.xy), packHalf2x16(v.zw));
+}
+
+#ifndef GL_ES
+uvec2 mix(uvec2 a, uvec2 b, bvec2 v)
+{
+    return uvec2(v.x ? b.x : a.x, v.y ? b.y : a.y);
+}
+#endif
+
+void generate_displacement()
+{
+    uvec2 N = gl_WorkGroupSize.xy * gl_NumWorkGroups.xy;
+    uvec2 i = gl_GlobalInvocationID.xy;
+    uvec2 wi = mix(N - i, uvec2(0u), equal(i, uvec2(0u)));
+
+    vec2 a = distribution[i.y * N.x + i.x];
+    vec2 b = distribution[wi.y * N.x + wi.x];
+
+    vec2 k = uMod * alias(vec2(i), vec2(N));
+    float k_len = length(k);
+
+    const float G = 9.81;
+    float w = sqrt(G * k_len) * uTime; // Do phase accumulation later ...
+
+    float cw = cos(w);
+    float sw = sin(w);
+
+    a = cmul(a, vec2(cw, sw));
+    b = cmul(b, vec2(cw, sw));
+    b = vec2(b.x, -b.y);
+    vec2 res = a + b;
+
+    vec2 grad = cmul(res, vec2(-k.y / (k_len + 0.00001), k.x / (k_len + 0.00001)));
+    grads[i.y * N.x + i.x] = pack2(grad);
+}
+
+void main()
+{
+    generate_displacement();
+}
+

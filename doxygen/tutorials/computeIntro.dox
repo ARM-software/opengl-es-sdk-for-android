@@ -1,0 +1,835 @@
+/**
+\page computeIntro Introduction to compute shaders
+
+\brief This document will give you an introduction to compute shaders in OpenGL ES 3.1,
+how they fit into the rest of OpenGL ES and how you can make use of it in your application.
+Using compute shaders effectively requires a new mindset where parallel computation is exposed more explicitly to developers.
+With this explicitness, various new primitives are introduced which allows compute shader threads to share access to memory and synchronize execution.
+
+\note This tutorial does not include a particular code sample outside the snippets provided here.
+This document is intended to be read before digging deep into the more involved compute shader samples.
+
+\section computeModel The compute model, implicit vs. explicit parallelism
+
+For the most part, computer graphics is a so called "embarrassingly parallel" problem.
+If we look at drawing a scene we can process all vertices and the resulting fragments in parallel and separately.
+Getting good parallelism for such a case is fairly straight forward,
+and does not require much from an OpenGL ES application.
+GPUs are designed to handle these workloads well.
+
+A good side effect of embarrassingly parallel computation is that from an API standpoint, there is no need
+to explicitly state the number of threads needed for a task and manage them manually.
+We only provide shader code for the task that is to be run in parallel.
+
+\code
+for (int i = 0; i < NUMBER_OF_INVOCATIONS; i++)
+{
+    run_shader(output[i], input[i]);
+}
+\endcode
+
+We do not need to care how the loop is implemented, or in which order the loop is executed.
+We only implement run_shader(), or in our case, our shader code.
+In compute terms, the loop body, `run_shader()`, is commonly called the "kernel".
+
+Before compute shaders, there were multiple ways to expose embarrassingly parallel computation in OpenGL ES.
+A common way to perform computation is by rasterizing a quad and performing arbitrary computation in the fragment shader.
+The results can then be written to a texture. Another approach is to use transform feedback to perform arbitrary computation in the vertex shader.
+
+A common theme in vertex and fragment shading is that once the shader starts executing,
+it is already known where the shader will write data and the shader invocation has no knowledge of other shader invocations running in parallel.
+In vertex shading, our input is vertex attributes and we output varyings and `gl_Position`.
+For fragment, we take interpolated varyings as input and output one or multiple colors.
+Using textures and uniform buffer objects, we are able to read from arbitrary memory in vertex and fragment,
+but we are still only allowed to write to one specific location.
+
+Moving to compute, we have no notion of vertex attribute, varyings, or output colors.
+Once a compute thread starts executing, it has no prior knowledge of where it will read data from nor where it will write to.
+Since every compute thread executes the same kernel code, we need some way for threads to do different things.
+The approach that compute APIs have taken is to give each thread a unique identifier.
+
+Consider the difference between:
+
+\code
+#version 300 es
+
+// Your typical transform feedback vertex shader.
+in vec3 aPosition;  // Fixed input.
+out vec3 vPosition; // Fixed output. Outputs to transform feedback.
+
+void main()
+{
+    vec3 next_position = compute_next_position(aPosition);
+    gl_Position = vec4(next_position, 1.0);
+    vPosition = next_position;
+}
+\endcode
+
+and
+
+\code
+#version 310 es
+// Details left blank ...
+void main()
+{
+    uint index = gl_GlobalInvocationID.x; // Identify the thread, use it to lookup some data.
+    positions[index] = compute_next_position(positions[index]);
+}
+\endcode
+
+In the latter case, we explicitly state that we want to process elements independently, where in the first, we're forced to do so by design.
+As we see, transform feedback can be considered a special case of compute where inputs and output are mapped one-to-one.
+
+\subsection computeWorkGroups Work groups in compute
+
+\image html compute_dispatch.png "A compute dispatch"
+
+A typical compute job can span hundreds of thousands of threads, just like a quad being rasterized to a full screen can easily cover millions of pixels.
+It is clear that even a GPU cannot feasibly keep track of so many threads at one time.
+We do not have enough hardware for so many threads to execute at the same time.
+
+Instead, we subdivide our threads into work groups which consist of a fixed number of threads.
+This is a smaller collection of threads that can run in parallel.
+Individual work groups however, are completely independent.
+A valid implementation could now look like
+
+\code
+for (int w = 0; w < NUM_WORK_GROUPS; w++)
+{
+    // Guaranteed to run in parallel.
+    parallel_for (int i = 0; i < THREADS_IN_WORK_GROUP; i++)
+    {
+        execute_compute_thread(w, i);
+    }
+}
+\endcode
+
+The number of threads in the work group is defined in the compute shader itself.
+To do this, we use a layout qualifier as such:
+
+\code
+#version 310 es
+// NUM_X * NUM_Y * NUM_Z threads per work group.
+layout(local_size_x = NUM_X, local_size_y = NUM_Y, local_size_z = NUM_Z) in;
+// Rest of shader code here.
+\endcode
+
+In OpenGL ES, implementations must support at least 128 threads in a work group.
+It is possible to check `glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS)` in run-time to get implementation-specific limits.
+
+\image html compute_work_group.png "A compute work group"
+
+\subsection computeIdentification Identifying compute threads
+
+In OpenGL ES compute shaders, there are various ways for individual threads to get some unique identification.
+
+\code
+in uvec3 gl_NumWorkGroups;        // Check how many work groups there are. Provided for convenience.
+in uvec3 gl_WorkGroupID;          // Check which work group the thread belongs to.
+in uvec3 gl_LocalInvocationID;    // Within the work group, get a unique identifier for the thread.
+in uvec3 gl_GlobalInvocationID;   // Globally unique value across the entire compute dispatch. Short-hand for gl_WorkGroupID * gl_WorkGroupSize + gl_LocalInvocationID;
+in uint  gl_LocalInvocationIndex; // 1D version of gl_LocalInvocationID. Provided for convenience.
+\endcode
+
+Note the three dimensional values. In compute applications, it is often desirable to organize the work in more than one dimension.
+For image processing, it makes sense to use two dimensions, while processing volumetric 3D data makes sense to do using three dimensions.
+
+It's important to note that this work group scheme is not new. This is the common model used by all major compute APIs, and skills learned by coding against this model can be applied to APIs like OpenCL as well. If you have used other compute APIs in the past, the OpenGL model should feel familiar.
+
+\section compileCompileAndRun Compiling and executing a compute shader
+
+Compute shaders are still shaders just like fragment and vertex shaders.
+The difference however, is that compute shaders are single-stage. You cannot link a compute shader with a vertex shader for example.
+
+To compile and link a compute program, we can do something like this
+\code
+GLuint program = glCreateProgram();
+GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
+glShaderSource(shader, ...);
+glCompileShader(shader);
+glAttachShader(program, shader);
+glLinkProgram(program);
+\endcode
+
+To execute a compiled shader, it works similarly to regular draw calls.
+
+\code
+glUseProgram(program); // Compute shader program.
+glDispatchCompute(work_groups_x, work_groups_y, work_groups_z);
+\endcode
+
+We explicitly state how many work groups we want to dispatch.
+The number of work groups will be `work_groups_x * work_groups_y * work_groups_z`
+organized in three dimensions as we specify ourselves.
+
+Conceptually, this compute job runs asynchronous with the rest of OpenGL ES,
+and we will later look into how we synchronize with the rest of OpenGL ES.
+
+\section computeSSBO Reading and writing data to buffer objects
+
+While OpenGL ES has many different buffer types, there were no buffer types which could support fully random access writing.
+Shader storage buffer objects, or SSBO for short is the new general purpose buffer object in OpenGL ES.
+Implementations must support SSBOs of at least 128 MiB, which is a tremendous increase compared to the 16 KiB that uniform buffer objects must support.
+
+\subsection computeBindingSSBO Binding an SSBO
+
+Just like uniform buffer objects, SSBOs are bound in an indexed way as a shader can have multiple SSBOs in use.
+
+\code
+glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, buffer_object);
+
+// In shader
+layout(binding = index) buffer SSBO {
+    ...
+};
+\endcode
+
+To create an SSBO and upload data to it, use `glBindBuffer()` as normal.
+
+\code
+glGenBuffers(1, &ssbo);
+glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+glBufferData(GL_SHADER_STORAGE_BUFFER, ...);
+\endcode
+
+\note SSBOs are not special.
+Any OpenGL buffer can be bound to a `GL_SHADER_STORAGE_BUFFER` target, no matter how they were originally created.
+
+\subsection computestd430 Layout std430, new and better std140
+
+A problem with using e.g. uniform buffer objects is that the binary layout for CPU and GPU must be the same.
+std140 layout is the standard packing layout that is guaranteed to be the same for every implementation which makes it more maintainable
+and easy to use uniform buffer objects.
+std140 has some deficiencies however. One major problem with std140 is that arrays of scalars cannot be tightly packed.
+E.g. a `float array[1024];` will have element packing like a `vec4`, which quadruples the memory requirements.
+The workaround for that has been always packing in vec4s,
+but if the underlying data is inherently scalar, such workarounds are at best annoying.
+
+std430 improves packing, and ensures that scalar arrays can be tightly packed. std430 is only available for SSBOs.
+
+\code
+#version 310 es
+layout(std430) buffer; // Sets the default layout for SSBOs.
+
+layout(binding = 0) buffer SSBO {
+    float data[]; // This array can now be tightly packed.
+};
+\endcode
+
+\subsection computeUnsizedArrays Unsized arrays in SSBOs
+
+When processing large amounts of data, it is often unknown in the shader itself how large a buffer object really is.
+In other buffer objects, we typically have to give it a size anyways, like
+
+\code
+layout(std140, binding = 0) uniform UBO {
+    SomeStruct elements[MAX_ELEMENTS];
+};
+\endcode
+
+With SSBOs, this restriction is lifted, and we can declare the last member of a struct without size.
+
+\code
+layout(std430, binding = 0) buffer SSBO {
+    SomeStruct elements[];
+};
+\endcode
+
+It is possible to query the number of elements during shader execution using `elements.length()` like any other GLSL array.
+The length parameter is derived from the buffer that is bound to the binding point.
+
+\subsection computeHelloWorld Hello Compute World
+
+To give the minimally useful compute shader, let's assume we want to do an element-wise multiplies.
+
+\code
+#version 310 es
+layout(local_size_x = 128) in;
+layout(std430) buffer;
+
+layout(binding = 0) writeonly buffer Output {
+    vec4 elements[];
+} output_data;
+
+layout(binding = 1) readonly buffer Input0 {
+    vec4 elements[];
+} input_data0;
+
+layout(binding = 2) readonly buffer Input1 {
+    vec4 elements[];
+} input_data1;
+
+void main()
+{
+    uint ident = gl_GlobalInvocationID.x;
+    output_data.elements[ident] = input_data0.elements[ident] * input_data1.elements[ident];
+}
+\endcode
+
+\section computeImageLoadStore Reading and writing to textures
+
+Similarly to the situation with buffer objects before, textures have been read-only.
+The standard way to write to a texture has been via framebuffer objects and fragment shading.
+For compute, a new and more direct interface to deal with writeable textures is introduced.
+
+We have had terminology like a texture and sampler before, but to expose writeable textures a shader `image` is introduced.
+Shader images have support for random-access reads (like `texelFetch`), and random access writes.
+An interesting feature is that they also support reinterpreting the underlying datatype. Unlike regular textures, shader images support no filtering, and as they are basically raw texel access, the underlying datatype
+can be reinterpreted however the shader wants. The restriction is that the actual texture format and reinterpreted format must have the same size.
+
+Layering is also supported. This means that a cube map, 2D texture array or 3D texture can be bound and the shader has full access to any cube face, array index or 3D texture slice.
+It is also possible to disable layering and only bind a single layer as a plain 2D image.
+
+\subsection computeImageBinding Binding a shader image
+
+Binding a shader image is similar to binding a texture.
+
+\code
+glBindImageTexture(unit, texture, level, layered, layer, access, format);
+
+// For example
+glBindImageTexture(0,             /* unit, note that we're not offsetting GL_TEXTURE0 */
+                   texture,       /* a 2D texture for example */
+                   0,             /* miplevel */
+                   GL_FALSE,      /* we cannot use layered */
+                   0,             /* this is ignored */
+                   GL_WRITE_ONLY, /* we're only writing to it */
+                   GL_R32F        /* interpret format as 32-bit float */);
+\endcode
+
+In the shader code, we would do something like:
+
+\code
+layout(r32f /* Format, must match parameter in glBindImageTexture() */, binding = 0) writeonly uniform highp image2D uImage;
+\endcode
+
+In GLSL, we can now use `imageLoad()`, `imageStore()` and `imageSize()`.
+
+\code
+imageStore(uImage, ivec2(28, 39), vec4(1.0)); // Random access texture writes!
+\endcode
+
+\note A common mistake is to attempt to use `glUniform1i()` to bind shader images to a particular "unit" like with regular samplers.
+This is not supported, and you should use `layout(binding = UNIT)` in the shader code instead. This is the modern OpenGL (ES) way of doing things anyways.
+
+\note A very important restriction for using shader images is that the underlying texture must have been allocated using "immutable" storage,
+i.e. via `glTexStorage*()`-like functions, and not `glTexImage2D()`.
+
+\section computeShared Sharing memory between threads in same work group
+
+A major feature of compute is that since we have the concept of a work group, we can now give the work group some shared memory which can be used by every thread in the work group.
+This allows compute shader threads to share their computation with other threads which can make or break certain parallel algorithms.
+
+ - Shared memory is limited in size.
+ - Implementations must support at least 16 KiB worth of storage for a single work group.
+ - Shared memory is uninitialized, and not persistent.
+ - It is not backed by buffer objects and only serves as scratch memory for the execution of a work group.
+
+A nice use case for shared memory is that it's sometimes possible to perform multi-pass algorithms in a single pass instead by using shared memory to store data between passes.
+Shared memory is typically backed by either cache or specialized fast local memory. Multi-pass approaches using fragment shaders need to flush out results to textures every pass, which can get very bandwidth intensive.
+
+To declare shared memory for a compute work group, do this:
+
+\code
+shared float shareData[1024]; // Shared between all threads in work group.
+
+void main()
+{
+    // Shader code here ...
+}
+\endcode
+
+To properly make use of shared memory however, we will need to introduce some new \ref computeSync "synchronization primitives" first.
+
+\section computeAtomics Atomic operations
+
+With compute shaders, multiple threads can perform operations on the same memory location.
+Without some new atomic primitives, accessing such memory safely and correct would be impossible.
+
+ - Atomic addition/subtraction
+ - Atomic or/xor/and
+ - Atomic maximum/minimum
+ - Atomic exchange
+ - Atomic compare exchange
+
+Atomic operations fetch the memory location, perform the operation and write back to memory atomically.
+Thus, multiple threads can access the same memory without data races.
+Atomic operations are supported for uint and int datatypes.
+Atomic operations always return the value that was in memory before applying the operation in question.
+
+There are two interfaces for using atomics in OpenGL ES 3.1, explained below.
+
+\subsection computeAtomicCounters Atomic counters
+
+The first interface is the older atomic counters interface.
+It is a reduced interface which only supports basic increments and decrements.
+
+In a shader, you can declare an `atomic_uint` like this:
+
+\code
+layout(binding = 0, offset = 0) uniform atomic_uint atomicCounter;
+
+void main()
+{
+    uint previous = atomicCounterIncrement(atomicCounter);
+}
+\endcode
+
+Atomic counters are backed by a buffer object `GL_ATOMIC_COUNTER_BUFFER`.
+Just like uniform buffers, they are indexed buffers. To bind an indexed buffer, use
+
+\code
+glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, index, buffer_object);
+\endcode
+
+or
+
+\code
+glBindBufferRange(GL_ATOMIC_COUNTER_BUFFER, index, buffer_object, offset, size);
+\endcode
+
+\note Any OpenGL buffer can be bound to `GL_ATOMIC_COUNTER_BUFFER`.
+Note that there are restrictions to the number of counters you can use.
+
+\subsection computeAtomicSSBO Atomic operations on SSBOs and shared memory
+
+A more flexible interface to atomics is when using shared memory or SSBOs.
+Various `atomic*()` functions are provided which accept variables backed by shared or SSBO memory.
+
+For example:
+
+\code
+shared uint sharedVariable;
+layout(std430, binding = 0) buffer SSBO {
+    uint variables[];
+};
+
+void main()
+{
+    uint previousShared = atomicAdd(sharedVariable, 42u);
+    uint previousSSBO   = atomicMax(variables[12], 11u);
+}
+\endcode
+
+\subsection computeAtomicImage Atomic operations on shader images
+
+With an extension to OpenGL ES 3.1, `GL_OES_shader_image_atomic`, atomic operations are supported on shader images as well.
+
+\section computeMemory Synchronizing memory transactions
+
+OpenGL ES from an API standpoint is an in-order model.
+The API **appears** to execute GL commands as-if every command is completed immediately before moving on to the next GL command.
+Of course, any reasonable OpenGL ES implementation will not do this, and opt for a buffered and/or deferred approach.
+In addition, for various hazard scenarios like reading from a texture after rendering a scene to it, the driver needs to ensure proper synchronization, etc.
+Users of OpenGL ES do not have to think about these low-level details. The main reason why this can be practical from an API standpoint is that up until now, the
+API have had full control of where shaders write data. Either we wrote data to textures via FBOs, or to buffers with transform feedback. The driver could track
+which data has been touched and add the extra synchronization needed to operate correctly.
+
+With compute however, the model changes somewhat. Now, compute shaders can write to SSBOs, images, atomics and shared memory.
+Whenever we perform such writes, we need to ensure proper synchronization ourselves.
+
+\subsection computeCoherent Coherent and various memory qualifiers
+
+Being able to have writes from one thread be visible to another thread running in parallel requires coherent memory.
+We need some new qualifiers to express how we are going to access the memory, and OpenGL ES 3.1 defines these new qualifiers.
+
+  - coherent
+  - writeonly
+  - readonly
+  - volatile
+  - restrict
+
+To use one or multiple qualifiers, we can apply them to SSBOs and shader images like this:
+
+\code
+// SSBO
+layout(std430, binding = 0) writeonly coherent buffer SSBO {
+    float coherentVariable;
+};
+
+// Image
+layout(r32f, binding = 0) restrict readonly uniform highp image2D uImage;
+\endcode
+
+\subsubsection computeQualifierCoherent coherent
+
+A variable declared coherent means that a write to that variable will eventually be made visible to other shader invocations in the same GL command.
+This is only useful if you expect that other threads are going to read the data that one thread will write.
+Threads which are reading data from coherent writes must also read from variables marked as coherent.
+
+\note Coherent qualifier should not be used if the data written by shaders are to be consumed in a different GL command.
+See \ref computeAPIBarrier "API level memory barriers" for that case.
+
+\note Shared memory as you'd might expect is implicitly declared with coherent qualifiers, since its purpose is precisely to share data between threads.
+While using the coherent qualifier itself is fairly uncommon, the rules are still important to know since shared memory is coherent.
+
+\subsubsection computeWriteOnly writeonly/readonly
+
+These are designed to express read-only or write-only behavior.
+Atomic operations both read and write variables, and variables cannot be declared with either if atomics are used.
+
+\subsubsection computeVolatileRestrict volatile/restrict
+
+These are fairly obscure. Their meanings are the same as in C.
+Restrict expresses that buffers or images do not alias each other,
+while volatile means buffer storage can change at any time, and must be reloaded every time.
+
+\subsection computeAPIBarrier API level memory barriers
+
+Consider a probable use of compute where we're computing a vertex buffer and drawing the result:
+
+\code
+glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffer);
+glUseProgram(update_vbo_program);
+glDispatchCompute(GROUPS, 1, 1); // <-- Write to buffer
+
+glUseProgram(render_program);
+glBindVertexArray(vertex_array);
+glDrawElements(GL_TRIANGLES, ...); // <-- Read from buffer
+\endcode
+
+If this were render-to-texture or similar, code like this would be correct since the OpenGL ES driver ensures correct synchronization.
+However, since we wrote to an SSBO in a compute shader, we need to ensure that our writes are properly synchronized with the rest of OpenGL ES ourselves.
+
+To do this, we use a new function, `glMemoryBarrier()` and our corrected version looks like:
+
+\code
+glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffer);
+glUseProgram(update_vbo_program);
+glDispatchCompute(NUM_WORK_GROUPS, 1, 1); // <-- Write to buffer
+
+// Ensure that writes to buffer are visible to subsequent GL commands which try to read from it.
+// Essentially, it tells the GPU to flush and/or invalidate its appropriate caches.
+glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+
+glUseProgram(render_program);
+glBindVertexArray(vertex_array);
+glDrawElements(GL_TRIANGLES, ...); // <-- Read from buffer
+\endcode
+
+It's important to remember the semantics of `glMemoryBarrier()`.
+As argument it takes a bitfield of various buffer types.
+We specify how we will **read** data after the memory barrier.
+In this case, we are writing the buffer via an SSBO, but we're reading it when we're using it as a vertex buffer,
+hence `GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT`.
+
+Another detail is that we only need a memory barrier here.
+We do not need some kind of "execution barrier" for the compute dispatch itself.
+
+\subsection computeShaderBarrier Shader language memory barriers
+
+While the API level memory barriers order memory accesses across GL commands,
+we also need some shader language barriers to order memory accesses within a single dispatch.
+
+To understand memory barriers, we first need to consider memory ordering. An important problem with multi-threaded programming
+is that while memory transactions within a single thread might happen as expected,
+when other threads see the data written by the thread, the order of which the memory writes become visible might not be well defined depending on the architecture.
+In the CPU space, this problem also exists, where it's often referred to as "weakly ordered memory".
+
+To fully grasp the consequences of weakly ordered memory is a long topic on its own.
+The section here serves to give some insight as to why ordering matters,
+and why we need to think about memory ordering when we want to share data with other threads running in parallel.
+
+To illustrate why ordering matters, we can consider two threads in this classic example.
+Thread 1 is a producer which writes data, and thread 2 consumes it.
+
+\code
+shared int A;
+shared int B;
+
+// Assume A and B are initially 0 and that thread A and B are running in parallel.
+
+// Thread 1
+A = 1;
+B = 1;
+
+// Thread 2
+int readB = B;
+int readA = A;
+
+if (readA == 0 && readB == 0)
+{
+    // This makes sense. Thread 2 might have read A and B before thread 1 completed any of its writes.
+}
+else if (readA == 1 && readB == 0)
+{
+    // This makes sense, we might have read A and B in-between the write to A and B in thread 1.
+}
+else if (readA == 1 && readB == 1)
+{
+    // This also makes sense. Thread 1 have completed both its writes before thread 2 read any of them.
+}
+else if (readA == 0 && readB == 1)
+{
+    // How can this happen? It can ...
+}
+\endcode
+
+Even if thread 1 wrote to A, then B, it is possible that the memory system completes the write to B first, then A.
+If thread 2 reads B and A with just the right timing, the odd-ball case above is possible.
+
+To resolve this case, we need to employ memory barriers to tell the memory system that a strict ordering guarantee is required. OpenGL ES defines several memory barriers.
+
+ - `memoryBarrier()`
+ - `memoryBarrierShared()`
+ - `memoryBarrierImage()`
+ - `memoryBarrierBuffer()`
+ - `memoryBarrierAtomicCounter()`
+ - `groupMemoryBarrier()`
+
+The `memoryBarrier*()` functions control memory ordering for a particular memory type.
+`memoryBarrier()` enforces ordering for all memory accesses.
+`groupMemoryBarrier()` enforces memory ordering like `memoryBarrier()`, but only for threads in the same work group.
+All memory barriers except for `groupMemoryBarrier()` and `memoryBarrierShared()` enforce ordering for all threads in the compute dispatch.
+
+The memory barrier ensures that all memory transactions before the barrier must complete before proceeding.
+Memory accesses below the barrier cannot be moved over the barrier.
+
+Looking at our example, we can now fix it like this:
+
+\code
+// Thread 1
+A = 1;
+memoryBarrierShared(); // Write to B cannot complete until A is completed.
+B = 1;
+
+// Thread 2
+int readB = B;
+memoryBarrierShared(); // Reads from A cannot happen before we've read B.
+int readA = A;
+
+if (readA == 0 && readB == 1)
+{
+    // This case is now impossible. If B == 1, we know that the write to A must have happened.
+    // Since we are guaranteed to read A after B, we must read A == 1 as well.
+}
+\endcode
+
+While ordering scenarios like these are rarely relevant for compute, memory barriers in OpenGL ES also ensure visibility of coherent writes.
+If a thread is writing to coherent variables and we want to ensure that our writes become visible to other threads, we need memory barriers. For example:
+
+\code
+write_stuff_to_shared_memory();
+
+// We can conceptually see this as "flush out my writes to shared memory now".
+// If other threads try to read from shared memory after this returns, we are guaranteed to read the correct values.
+memoryBarrierShared();
+\endcode
+
+\note While memory barriers ensure that writes become visible, this does not mean that omitting a memory barrier guarantees that writes never become visible.
+If two threads happen to share the same caches, the writes would likely become visible anyways.
+
+\section computeSync Synchronizing execution of threads
+
+Memory barriers only ensure ordering for memory, not execution. Parallel algorithms often require some kind of execution synchronization as well.
+
+A cornerstone of GPU compute is the ability to synchronize threads in the same workgroup.
+By having fine-grained synchronization of multiple threads,
+we are able to implement algorithms where we can safely know that other threads in the work group have done their tasks.
+
+For example, let's assume a case where we want to read some data from an SSBO, perform some computation on the data and share the results with the
+other threads in the work group.
+
+\code
+#version 310 es
+layout(local_size_x = 128) in; // Work group of 128 threads.
+
+// Allow ping-ponging between two buffers.
+shared vec4 someSharedData0[128];
+shared vec4 someSharedData1[128];
+
+layout(std430, binding = 0) readonly buffer InputData {
+    vec4 someInputData[];
+};
+
+layout(std430, binding = 1) writeonly buffer OutputData {
+    vec4 someOutputData[];
+};
+
+vec4 perform_computation(vec4 data)
+{
+    return sin(data);
+}
+
+vec4 some_arbitrary_work(vec4 a, vec4 b)
+{
+    return vec4(a.xy * b.yx, a.zw * b.wz);
+}
+
+void main()
+{
+    // If you are very lucky, this would work ...
+
+    someSharedData0[gl_LocalInvocationIndex] = perform_computation(someInputData[gl_GlobalInvocationID.x]);
+
+    // Where is memory barrier?
+    
+    // Here we want to use the results that other threads have computed and do something useful.
+    // Note the alternation between two arrays.
+
+    // 1st pass.
+    someSharedData1[gl_LocalInvocationIndex] =
+        some_arbitrary_work(someSharedData0[gl_LocalInvocationIndex], someSharedData0[(gl_LocalInvocationIndex + 15u) & 127u]);
+
+    // Again, use results from other threads.
+    // 2nd pass.
+    someSharedData0[gl_LocalInvocationIndex] =
+        some_arbitrary_work(someSharedData1[gl_LocalInvocationIndex], someSharedData1[(gl_LocalInvocationIndex + 15u) & 127u]);
+
+    // Again, use results from other threads.
+    // 3rd pass, write out results to buffer.
+    someOutputData[gl_LocalInvocationIndex] =
+        some_arbitrary_work(someSharedData0[gl_LocalInvocationIndex], someSharedData0[(gl_LocalInvocationIndex + 15u) & 127u]);
+}
+\endcode
+
+In this sample, we're missing proper synchronization. For example, we have a fundamental problem that we aren't guaranteed that other threads in the work group
+have executed `perform_computation()` and written out the result to `someSharedData0`.
+If we let one thread proceed with execution prematurely, we will read garbage, and the computation will obviously be wrong.
+To solve this problem we need to employ memory barriers and execution barriers.
+
+\code
+#version 310 es
+layout(local_size_x = 128) in; // Work group of 128 threads.
+
+// Allow ping-ponging between two buffers.
+shared vec4 someSharedData0[128];
+shared vec4 someSharedData1[128];
+
+layout(std430, binding = 0) readonly buffer InputData {
+    vec4 someInputData[];
+};
+
+layout(std430, binding = 1) writeonly buffer OutputData {
+    vec4 someOutputData[];
+};
+
+vec4 perform_computation(vec4 data)
+{
+    return sin(data);
+}
+
+vec4 some_arbitrary_work(vec4 a, vec4 b)
+{
+    return vec4(a.xy * b.yx, a.zw * b.wz);
+}
+
+void synchronize()
+{
+    // Ensure that memory accesses to shared variables complete.
+    memoryBarrierShared();
+
+    // Every thread in work group must reach this barrier before any other thread can continue.
+    barrier();
+}
+
+void main()
+{
+    someSharedData0[gl_LocalInvocationIndex] = perform_computation(someInputData[gl_GlobalInvocationID.x]);
+
+    synchronize();
+
+    // We are now guaranteed that all threads in the work group have completed their work, and that their shared memory writes
+    // are visible to us. We can now proceed with the computation.
+   
+    // It's important that we're writing to a separate shared array here,
+    // otherwise our newly computed values could stomp on the data that other threads are trying to read.
+    someSharedData1[gl_LocalInvocationIndex] =
+        some_arbitrary_work(someSharedData0[gl_LocalInvocationIndex], someSharedData0[(gl_LocalInvocationIndex + 15u) & 127u]);
+
+    synchronize();
+
+    someSharedData0[gl_LocalInvocationIndex] =
+        some_arbitrary_work(someSharedData1[gl_LocalInvocationIndex], someSharedData1[(gl_LocalInvocationIndex + 15u) & 127u]);
+
+    synchronize();
+
+    someOutputData[gl_LocalInvocationIndex] =
+        some_arbitrary_work(someSharedData0[gl_LocalInvocationIndex], someSharedData0[(gl_LocalInvocationIndex + 15u) & 127u]);
+}
+\endcode
+
+\note Many tutorials assume that calling `barrier()` also implies that shared memory is synchronized.
+While this is often the case from an implementation point of view, the OpenGL ES specification is not as clear on this and to avoid potential issues,
+use of a proper `memoryBarrierShared()` before `barrier()` is **highly** recommended.
+For any other memory type than shared, the specification is very clear on that the approprimate memory barrier must be used.
+
+\subsection computeBarrierFlowControl Flow control and barrier()
+
+`barrier()` is a quite special function due to its synchronization properties.
+If one of the threads in the work group does not hit the barrier(), it conceptually means that no other thread can ever continue, and we would have a deadlock.
+
+These situations can arise in divergent code, and it's necessary for the programmer to ensure that either every thread calls the barrier, or no threads call it.
+It's legal to call barrier() in a branch (or loop), as long as the flow control is dynamically uniform. E.g.:
+
+\code
+if (someUniform > 1.0)
+{
+    // Fine, since this condition will fail or pass for every thread.
+    barrier();
+}
+\endcode
+
+\code
+if (someVariable > 1.0)
+{
+    // Can be problematic, unless the branch is guaranteed to be taken or not for every thread the same way.
+    barrier();
+}
+\endcode
+
+\section computeVertexFragment Compute-like functionality in other graphics stages
+
+Compute-like functionality such as SSBOs, shader image load/store and atomic counters are **optionally** supported in vertex and fragment shaders as well in OpenGL ES 3.1.
+To test if these features are supported, various `glGetIntegerv()` queries tells the application if these features are supported.
+
+ - `GL_MAX_*_ATOMIC_COUNTERS`
+ - `GL_MAX_*_SHADER_STORAGE_BLOCKS`
+ - `GL_MAX_*_IMAGE_UNIFORMS`
+
+where `*` can be replaced with the appropriate shader stage.
+In OpenGL ES 3.1, these values are 0 if not supported by the implementation.
+
+\subsection computeBarrierByRegion glMemoryBarrierByRegion()
+
+`glMemoryBarrierByRegion()` is a special variant of `glMemoryBarrier()` which only applies for fragment shaders.
+It works the same way as `glMemoryBarrier()` except that it only guarantees memory ordering for fragments belonging to the same "region" of the framebuffer. The region is implementation defined, and can be as small as one pixel.
+
+This can be useful especially for tiled GPU architectures.
+Consider:
+
+\code
+draw_call_1(); // Write to shader image load store.
+glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+draw_call_2(); // Use results from first draw call.
+\endcode
+
+Since `glMemoryBarrier()` must guarantee visibility, we need to wait for every fragment in draw_call_1 to complete to ensure that our ordering guarantee is met. Since the fragments can hit anywhere in the entire framebuffer, this effectively means that we have to flush out our scene to memory, which we really want to avoid on tiled architectures.
+
+However, if we only care about ordering between fragments which hit the same **region** (pixel in framebuffer). We can avoid flushing out tile buffers to memory.
+
+\code
+draw_call_1(); // Write to shader image load store.
+glMemoryBarrierByRegion(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // Relaxed memory barrier.
+draw_call_2(); // Use results from first draw call.
+\endcode
+
+\subsection computeEarlyZ Force early-Z in fragment shader
+
+OpenGL ES 3.1 defines a model where per-fragment tests like depth testing happen **after** fragment shader execution.
+This is needed to accomodate cases where the fragment shader modifies depth.
+
+Modifying depth in the fragment shaders however is uncommon,
+and GPUs will tend to avoid executing the fragment shader altogether if it can since it already knows the fragment depth and can do the depth test early.
+
+With random access writes in fragment shaders, the situation becomes more complicated.
+We could do early-Z because there were no side effects in the fragment shader, but this model breaks down once side effects like shader image load/store is used.
+Since early-Z is so important, we can now force early depth testing in the fragment shader.
+
+\code
+#version 310 es
+layout(early_fragment_tests) in;
+\endcode
+
+*/
+

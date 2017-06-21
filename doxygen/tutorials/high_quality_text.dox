@@ -1,0 +1,52 @@
+/**
+\page highQualityText High Quality Text Rendering
+\brief Improving quality for textured text.
+
+\image html HighQualityTextHeader.png
+
+\section highQualityTextIntroduction Introduction
+
+The source for this sample can be found in the
+\if windows
+*samples\\advanced_samples\\HighQualityTextJava*
+\endif
+\if linux
+*samples/advanced_samples/HighQualityTextJava*
+\endif
+folder of the SDK.
+
+Preserving the highest possible quality text in real-time 3D graphics is challenging. Objects may change their position, rotation, scale and viewing angle dynamically. All these have a negative impact on quality because text is usually generated once, not in every frame. Generating a texture for the whole text takes a long time depending on the font engine and its performance. Usually this amount of time is enough to affect performance.
+
+This document presents an approach of how to achieve the best possible quality of text when the object is semi-dynamic. A semi-dynamic object is  an object which is being changed neither too often (not every frame) nor during animation time.
+
+This sample describes how to calculate font size, which should give a close matching of texels onto screen pixels.
+
+We are going to use the font engine which is part of  Android. The font engine produces an RGBA image which contains the shape of the whole text. Then the image is  uploaded into a texture and next the texture is mapped on a rectangle. The rectangle geometry must have  an appropriate aspect ratio defined according to the texture size.
+
+\section highQualityTextEvaluationAFontSize Evaluating A Font Size
+
+To evaluate the font size for a current transformation of the object we need to have four corners of a rectangle transformed from 3D world space into 2D pixel screen space. Having corners expressed in pixels we can calculate the distance between two left corners and the distance between two right corners. Then an average value is being calculated from those distances. The average value is what we are looking for, as this is the size of the font we are going to use to generate the image.
+
+\snippet samples/advanced_samples/HighQualityTextJava/src/com/arm/malideveloper/openglessdk/highqualitytextjava/TextObject.java Update Text Size
+
+Below is a definition of the makePixelCoords method from the Vector4f class. The method transforms a 3D vertex position onto a 2D pixel position.
+
+\snippet samples/advanced_samples/HighQualityTextJava/src/com/arm/malideveloper/openglessdk/highqualitytextjava/Vector4f.java Make Pixel Coords
+
+\section highQualityTextTextureGeneration Texture Generation
+
+As we already know the font size we can estimate a size for our destination image. The image has to be large enough to store the whole text without any cuts. On the other hand it cannot be too big because the following geometry calculations are based on the image size. We want to have a size fitted precisely to the content the font engine is going to produce.
+
+The height calculation is simple because this is the size of the font, but such a width is very complex. To calculate the width properly we need to use the font engine to help us estimate it. Android Java SDK comes with the measureText method from the Paint object. Before the measurement happens we need to deliver all necessary data to the object like: name of a font, size of a font (which we already calculated), anti-aliasing, color ARGB (in our case it is always white because coloring may be done in the fragment shader later on), and other less important data.
+
+Before we paint the text into a Bitmap object we need to clear its content using white color with an alpha entirely transparent ARGB = (0, 255, 255, 255). Having the background cleared with this color and Paint color set to white as well, prevents dark texels which might appear by alpha blending. If we are talking about blending it is important to mention about GL blending function which must be set properly before the text is rendered. The blend function must be set as: `glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA)`
+
+The function below does all the steps mentioned above:
+
+\snippet samples/advanced_samples/HighQualityTextJava/src/com/arm/malideveloper/openglessdk/highqualitytextjava/TextObject.java Draw Canvas To Texture
+
+\section highQualityTextFurtherImprovements Further Improvements
+
+ -  If the text is being changed frequently in your program this concept might fit that as well. We can suggest creating a separate thread which is going to update the texture continuously with some interval. In most cases it would be mostly desired to keep the thread on lowest possible priority since generating text is always considered as heavyweight operation which is more likely cause a disruption in performance. Needless to say that updating a texture should be done on the thread which serves the GL context.
+ -  If you are rendering the text along a Bezier curve or you are doing some displacements, you need to have size of font estimated more precisely. For this purpose increase rectangle resolution horizontally. At this point the rectangle will be split into vertical slices. Then evaluate average height of all these slices. The average height value is used to increase precision of the font size.
+*/

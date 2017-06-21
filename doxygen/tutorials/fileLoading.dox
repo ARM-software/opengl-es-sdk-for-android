@@ -1,0 +1,169 @@
+/**
+\page fileLoading Android File Loading
+\brief How to package assets up into the apk and load files from the file system.
+
+\section fileLoadingIntroduction Introduction
+
+This tutorial takes a break from teaching graphics to deal with a topic that is very important in general, and that is file loading.
+This is still very much relevant to graphics as you will often want to load assets from a file into your game or application.
+These assets could be in the form of textures for some of your models or even the models themselves if you have been using modelling software to generate content.
+This tutorial builds on what was learned in the \ref firstNative example and first shows you how to save persistent state so that your application can load users settings easily.
+Then the tutorial moves on to packaging your assets inside your apk and then extracting them at run time.
+We will look at extracting them into three main places:
+  -# A private location that can only be accessed by your application.
+  -# A public location that can be shared by different applications.
+  -# A temporary location that should not be used for permanent storage.
+
+The tutorial will then move on to show you how to pass a string to the native side of your application showing the location of the files you have extracted and then opening them in the native side of your application.
+
+\section fileLoadingSavingSettings Saving Preferences and Settings in your Application
+
+In a standard game or application you will usually want to save some persistent state between instances of the application being run.
+Examples of this would be user settings or preferences like the quality of the images being used, the difficulty of the game, or even the default directory the application should save content to.
+Android provides a very easy mechanism of doing this in Java.
+For our example we will simply store how many times the application has been ran in its lifetime.
+
+\snippet tutorials/FileLoading/src/com/arm/malideveloper/openglessdk/fileloading/FileLoading.java savePreferences
+
+Our changes are going to mostly involve the OnCreate method of the activity.
+You can do the saving a loading of your preference file anytime you like but it makes sense to load the settings as the application is run.
+The first thing we need to do is get an object that will allow us to access our preferences.
+This function takes in two parameters: the first is the filename that stores our preferences and the second is the mode of operation.
+At the moment we want our settings to be private to this application so we pass in MODE_PRIVATE.
+If this isn't what you want there are various other modes you can set such as MODE_WORLD_READABLE or MODE_WORLD_WRITABLE.
+Also the method we use here allows you to have more than one settings file. If you know you only ever want to use one then consider using the getPreferences function instead.
+
+We track how many times the application has been run with an integer so the next line creates an integer and uses the preferences that we have loaded to find the value.
+The first parameter in the getInt function is the key that your value is stored under in the file.
+This can be anything as long as it matches when you attempt to save the value later on.
+The second parameter is what value the application should use if the it can't find the value you are looking for in the file.
+In this example we set it to one as if the variable doesn't exist the application must be on its first ever run.
+
+Once we have loaded the value we just simply print it out to logcat as a test to see if the variable does in fact increment each time.
+We then get onto the business of saving the variable back in the file again.
+To do this we need to get an editor from the SharedPreferences.
+We then call putInt from the editor. This takes two parameters one is the key that we mentioned earlier and the second is the variable that holds the value we want to save.
+Once we have done all our editing we need to commit the changes back again.
+This is what the final line does, and that is all there is to it. Feel free to compile and run this application and watch the number of times you have run the application increase every time.
+
+\section fileLoadingPublicPrivateCacheLocations Locations of the Public, Private and Cache directories
+
+There are different places your files and information should go depending on what you want to use it for.
+The places that data can be stored also change sometimes depending on Android version.
+For this reason there are special methods which get the location of public, private and cache directories.
+
+\snippet tutorials/FileLoading/src/com/arm/malideveloper/openglessdk/fileloading/FileLoading.java publicPrivateCacheFileLocations
+
+The first line is the directory you will use most of the time.
+This is to get the location of your private data.
+Usually you won't want other applications to use your assets so this is the one you should use.
+Be aware though, if a user has root permissions on their device they will still be able to access the location through a shell.
+The current location where private files are stored is /data/data/PackageName/files so in the case of this tutorial /data/data/com.arm.malideveloper.openglessdk.fileloading/files.
+
+The second line gets you the location of a public directory.
+You need to provide getExternalStoragePublicDirectory function the name of the public directory you want to get.
+There are numerous different ones to choose from whether you want to get the music directory, the downloadsdirector or the photos directory.
+In this case we have just picked the download directory as an example.
+The reason you may want to make things public is if you have data that other applications should be able to access to.
+An example would be some music that you would like another music player to be able to play.
+The current location where public download files are stored is /mnt/sdcard/Download.
+
+The third line gets you the location of your applications cache directory.
+You should only put temporary files in here as the user is able to delete the cache whenever they need and Android will also delete the cache folder if it's running out of memory.
+The current location for an applications cache directory is /data/data/PackageName/cache so again the case of this tutorial it is located at /data/data/com.arm.malideveloper.openglessdk.fileloading/cache
+
+The next three lines would never be in a real application they are here to aid your understanding.
+They just print out to logcat the location of each of the three directories.
+
+\section fileSavingCache Adding Files to an Apk and Extracting them out
+
+If you have been following the tutorials up until the TextureLoading one you will know that at the moment we have been embedding assets like textures into the source code directly.
+This is fine for very small textures but a real life application will have numerous textures and they will also each be quite big.
+We could keep these files separate from the application and expect the user to push the files onto the device manually but this gives you no protection from the user what so ever and it is another step the end user will have to do to get you application to work and you want to reduce these as much as possible.
+
+One way around this problem is to include the assets into the apk file itself.
+That way the file will get compressed with the apk and will always be available.
+Placing assets inside an apk is very simple.
+If you look in your project directory structure you will see there is a folder called assets.
+Any files that you place in this folder will be compressed into the apk when building.
+For this tutorial we will add three text files, below is a list of the files names and their content:
+
+privateApplicationFile.txt: This is the private application file.
+Only this application can use its contents.
+publicApplicationFile.txt: This is the file that is stored in a public place.
+This means that other applications besides this one can access it.
+cacheApplicationFile.txt: This is a file that can be found in the cache.
+This means it isn't guaranteed to be there as the system can remove it when it runs low on memory.
+
+The more difficult problem is extracting the files out of the apk.
+
+\snippet tutorials/FileLoading/src/com/arm/malideveloper/openglessdk/fileloading/FileLoading.java callExtractAssets
+
+First we have defined three Strings that hold the name of the three files that we want to get out from our apk.
+We then call a function called extractAsset which we will define later that takes in the name of a file and the directory in which we want to extract the file to.
+
+\snippet tutorials/FileLoading/src/com/arm/malideveloper/openglessdk/fileloading/FileLoading.java extractAssetBeginning
+
+The first thing we need to do is to check whether the file already exists.
+There is no point extracting the files every time because if you have a lot of files this could take a long time.
+So the first line gets a file based on the directory and the file name that has been passed in.
+The file is then tested to see if it exists. If it does then there is no need to do anything else.
+Otherwise we execute the code below:
+
+\snippet tutorials/FileLoading/src/com/arm/malideveloper/openglessdk/fileloading/FileLoading.java extractAssets
+
+To extract our file to the filesystem we need to start by creating a file that will serve as the extracted version.
+We have chosen to use the RandomAccessFile class to do this.
+We then need to get an instance of the AssetManager which will deal with getting the files we need from the apk.
+We then read from the file and write to the output file using standard Java techniques.
+We use a InputStream to ppen the file provided from the AssetManager and then we declare a buffer and fill it from the input stream.
+We then write that information out using the RandomAccessFile.
+Once we have finished we need to close both files and catch the exception that is all there is to it.
+
+\snippet tutorials/FileLoading/src/com/arm/malideveloper/openglessdk/fileloading/FileLoading.java extractAssetsErrorChecking
+
+The final thing this function does is checks that the file to be extracted exists and prints out a message if successful.
+
+\section fileNativeFiles Using files and Passing Strings to the Native Side of the Application
+
+This is all well and good being able to extract files to various locations on an Android device, but its useless if we can't access them from the native part of the application.
+As its the native part that does all of the graphics in the application.
+Now there is a way to create applications that have no Java side to them at all.
+This is beyond the scope of this tutorial but if you do opt for this approach you can do all of the extraction of files on the native side anyway.
+Which will mean you don't have to deal with passing data from the Java side to the native side.
+Unfortunately if you do use the Java side, extraction in the native side is unlikely.
+
+The way we have chosen to get round this is to pass the path of the files to be opened as a string to the native side so that you can directly open them using C.
+There is very little involved in this the first thing we need to do is edit our onCreate method to call the library init function with new parameters.
+
+\snippet tutorials/FileLoading/src/com/arm/malideveloper/openglessdk/fileloading/FileLoading.java initNativeCall
+
+Our init function now takes 3 string parameters representing each of the files that we have just extracted.
+Each string needs to take the directory and then the file. As it's easier to concatenate strings in Java we chose to do that here than in C.
+Now you may remember our init function didn't originally take any parameters so we now need to open the NativeLibrary.java file and update our function prototype.
+
+\snippet tutorials/FileLoading/src/com/arm/malideveloper/openglessdk/fileloading/NativeLibrary.java initFunctionPrototype
+
+Now we need to update the function prototypes and definitions on the native side.
+Now in C we treat Java strings as jstrings so that is what we need to address them as in the function.
+
+\snippet tutorials/FileLoading/jni/Native.cpp initFunctionNativePrototype
+
+In order to work with the Java strings we need to convert them to cstrings.
+We do that with a function called GetStringUTFChars.
+Once we are finished with them we need to release them again using ReleaseStringUTFChars.
+
+\snippet tutorials/FileLoading/jni/Native.cpp nativeInitFunction
+
+The readFile function is a function that we will create in the next section.
+To keep code to a minimum we define PRIVATE_FILE_SIZE, PUBLIC_FILE_SIZE and CACHE_FILE_SIZE to the size of each of the files manually.
+These are 82, 105 and 146 respectively.
+The read file function works just like any other C file reading implementation.
+It is provided below for your convenience:
+
+\snippet tutorials/FileLoading/jni/Native.cpp readFile
+
+\section assetLoadingBuildRun2 Building and Running the Application
+
+Follow the \ref gettingStartedGuide from \ref gettingStartedGuideBuildingTheSamples onwards to build and run the application.
+*/

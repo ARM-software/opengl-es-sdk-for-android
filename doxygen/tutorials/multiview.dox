@@ -1,0 +1,461 @@
+/**
+\page multiview Using multiview rendering
+\brief This sample presents the GL_OVR_multiview and GL_OVR_multiview2 extensions and how they can be used to improve
+performance for virtual reality use cases.
+
+\section multiviewIntroduction Introduction
+
+Multiview rendering allows draw calls to render to several layers of an array texture simultaneously.
+The vertex shader can know what layer it is writing to, so that the rendering results can be different for each layer.
+This can be very useful for virtual reality applications where rendering the same scene from two different positions
+is necessary.
+
+\image html multiview_sample_screen.png "Multiview rendering sample."
+
+\warning
+In order to use multiview rendering the GL_OVR_multiview extension is needed. This extension is however limited so that
+only the output gl_Position can depend on the view index. The extension GL_OVR_multiview2 removes this restriction,
+making it much more useful as lighting might depend on the position of the camera. Only the GL_OVR_multiview extension
+is required by this tutorial, as we only change the gl_Position output based on the view index in the sample code. The
+extension GL_OVR_multiview_multisampled_render_to_texture is also useful as it allows multiview rendering to multisampled
+textures. Details on thess extensions can be found here <a href="#ref1">[1]</a> and here <a href="#ref2">[2]</a>. Using
+multiview rendering also restricts you from using geometry and tessellation shaders.
+
+\section multiviewWhatIsMultiview What is multiview rendering and why is it useful?
+
+Virtual reality applications need to render all their scenes twice from different view angles in order to create the
+illusion of depth. Doing this by simply rendering everything twice with different view and perspective matrices is not
+optimal, as it requires setting up a mostly identical draw call multiple times. The GL_OVR_multiview extension adresses
+this issue by allowing one draw call to render to multiple texture layers of an array texture, removing the overhead of
+setting up multiple draw calls. The vertex and fragment shaders are then invoked once for each texture layer in the
+attached array texture, and have access to the variable gl_ViewID_OVR which can be used to select view dependent input
+for each layer. Using this mechanism, an array of view and projection matrices can be used instead of a single matrix,
+and the shader can choose the right matrix for each layer using gl_ViewID_OVR, allowing one draw call to render from
+multiple eye positions with little overhead. Rendering to multiple layers with only one draw call can also potentially
+be done using layered geometry shaders, but this presents a much larger overhead compared to using the multiview
+extension as geometry shaders are very demanding on performance and multiview is a fixed function solution which allows
+many internal optimizations compared to geometry shaders.
+
+\section multiviewFBO Setting up a multiview framebuffer object
+
+Before using the extension, one should check that it is available, this can be done with the following code, which looks
+for the GL_OVR_multiview extension. Similar code can be used for checking for the GL_OVR_multiview2 or
+GL_OVR_multiview_multisampled_render_to_texture extensions if needed.
+
+\code
+const GLubyte* extensions = GL_CHECK(glGetString(GL_EXTENSIONS));
+char * found_extension = strstr ((const char*)extensions, "GL_OVR_multiview");
+if (NULL == found_extension)
+{
+    LOGI("OpenGL ES 3.0 implementation does not support GL_OVR_multiview extension.\n");
+    exit(EXIT_FAILURE);
+}
+\endcode
+
+It is however possible that the glFramebufferTextureMultiviewOVR function is not available in your GL headers even
+though the extension is supported. If this is the case, eglGetProc can be used to access the function as showed in the
+following code.
+
+\code
+typedef void (*PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVR)(GLenum, GLenum, GLuint, GLint, GLint, GLsizei);
+PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVR glFramebufferTextureMultiviewOVR;
+
+glFramebufferTextureMultiviewOVR =
+                (PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVR)eglGetProcAddress ("glFramebufferTextureMultiviewOVR");
+if (!glFramebufferTextureMultiviewOVR)
+{
+    LOGI("Can not get proc address for glFramebufferTextureMultiviewOVR.\n");
+    exit(EXIT_FAILURE);
+}
+\endcode
+
+If this call is successful, the glFramebufferTextureMultiviewOVR can be used as a normal gl function.
+
+The following code sets up a framebuffer object for rendering to multiview. Both the color attachment and the depth
+attachment are array textures with 2 layers, and both these layers will be rendered to by every draw call used on this
+framebuffer object. It is important that all attachments have the same number of layers as the framebuffer will not be
+complete otherwise. The framebuffer object has to be bound to the GL_DRAW_FRAMEBUFFER as otherwise the
+glFramebufferTextureMultiviewOVR call will give an INVALID_OPERATION error. It is also important that the number of views
+set up for the framebuffer object matches the number of views declared in the current shader program when drawing, as
+otherwise the draw call will give an INVALID_OPERATION error. The next section will show how to create a shader program
+that can be used for multiview rendering.
+
+\code
+bool setupFBO(int width, int height)
+{
+    // Create array texture
+    GL_CHECK(glGenTextures(1, &frameBufferTextureId));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D_ARRAY, frameBufferTextureId));
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    GL_CHECK(glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, width, height, 2));
+
+    /* Initialize FBO. */
+    GL_CHECK(glGenFramebuffers(1, &frameBufferObjectId));
+
+    /* Bind our framebuffer for rendering. */
+    GL_CHECK(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBufferObjectId));
+
+    /* Attach texture to the framebuffer. */
+    GL_CHECK(glFramebufferTextureMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                              frameBufferTextureId, 0, 0, 2));
+
+    /* Create array depth texture */
+    GL_CHECK(glGenTextures(1, &frameBufferDepthTextureId));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D_ARRAY, frameBufferDepthTextureId));
+    GL_CHECK(glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_DEPTH_COMPONENT24, width, height, 2));
+
+    /* Attach depth texture to the framebuffer. */
+    GL_CHECK(glFramebufferTextureMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                              frameBufferDepthTextureId, 0, 0, 2));
+
+    /* Check FBO is OK. */
+    GLenum result = GL_CHECK(glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER));
+    if (result != GL_FRAMEBUFFER_COMPLETE)
+    {
+        LOGE("Framebuffer incomplete at %s:%i\n", __FILE__, __LINE__);
+        /* Unbind framebuffer. */
+        GL_CHECK(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+        return false;
+    }
+    return true;
+}
+\endcode
+
+\section multiviewShaders Using multiview in shaders to render to several layers
+
+The following code shows shaders used for multiview rendering. Only the vertex shader contains multiview specific code.
+It enables the GL_OVR_multiview extension and sets the num_views variable in the layout to 2. This number needs to be
+the same as the number of views attached to the framebuffer using glFramebufferTextureMultiviewOVR. The shader takes in
+an array of view projection matrices (view and projection matrices multiplied together), instead of just one, and
+selects the matrix to use by indexing with gl_ViewID_OVR which gives the index of the current texture layer being
+rendered to. This allows us to have different camera positions and projections for the different layers, making it
+possible to render from both eye positions in a VR application with one draw call. There is only one model matrix is
+this case as the model does not move for the different layers. Only the gl_Position is affected by the gl_ViewID_OVR
+value in this case, meaning this shader only requires the GL_OVR_multiview extension and not the GL_OVR_multiview2
+extension. In order to also change the normal based on gl_ViewID_OVR (or other vertex outputs) the GL_OVR_multiview2
+would be required.
+
+\code
+#version 300 es
+#extension GL_OVR_multiview : enable
+
+layout(num_views = 2) in;
+
+in vec3 vertexPosition;
+in vec3 vertexNormal;
+uniform mat4 modelViewProjection[2];
+uniform mat4 model;
+out vec3 v_normal;
+
+void main()
+{
+    gl_Position = modelViewProjection[gl_ViewID_OVR] * vec4(vertexPosition, 1.0);
+    v_normal = (model * vec4(vertexNormal, 0.0f)).xyz;
+}
+
+#version 300 es
+precision mediump float;
+
+in vec3 v_normal;
+out vec4 f_color;
+
+vec3 light(vec3 n, vec3 l, vec3 c)
+{
+    float ndotl = max(dot(n, l), 0.0);
+    return ndotl * c;
+}
+
+void main()
+{
+    vec3 albedo = vec3(0.95, 0.84, 0.62);
+    vec3 n = normalize(v_normal);
+    f_color.rgb = vec3(0.0);
+    f_color.rgb += light(n, normalize(vec3(1.0)), vec3(1.0));
+    f_color.rgb += light(n, normalize(vec3(-1.0, -1.0, 0.0)), vec3(0.2, 0.23, 0.35));
+
+    f_color.a = 1.0;
+}
+\endcode
+
+The program can be set up in the same way as any other program. The viewProjection matrices must be set up as a
+matrix array uniform as in the following code. In this example the projection matrices are the same, but for VR one
+would normally use different projection matrices for each eye. The example later in this tutorial will render to more
+than 2 layers, and will use different perspective matrices per layer, which is the reason for there being more than one
+perspective matrix here. The camera positions in this case are set at -1.5 and 1.5 in the x direction, both looking at
+the center of the scene.
+
+\code
+/* M_PI_2 rad = 90 degrees. */
+projectionMatrix[0] = Matrix::matrixPerspective(M_PI_2, (float)width / (float)height, 0.1f, 100.0f);
+projectionMatrix[1] = Matrix::matrixPerspective(M_PI_2, (float)width / (float)height, 0.1f, 100.0f);
+
+/* Setting up model view matrices for each of the */
+Vec3f leftCameraPos =  {-1.5f, 0.0f, 4.0f};
+Vec3f rightCameraPos = {1.5f, 0.0f, 4.0f};
+Vec3f lookAt =         {0.0f, 0.0f, -4.0f};
+Vec3f upVec =          {0.0f, 1.0f, 0.0f};
+viewMatrix[0] = Matrix::matrixCameraLookAt(leftCameraPos,  lookAt, upVec);
+viewMatrix[1] = Matrix::matrixCameraLookAt(rightCameraPos, lookAt, upVec);
+
+modelViewProjectionMatrix[0] = projectionMatrix[0] * viewMatrix[0] * modelMatrix;
+modelViewProjectionMatrix[1] = projectionMatrix[1] * viewMatrix[1] * modelMatrix;
+
+multiviewModelViewProjectionLocation = GL_CHECK(glGetUniformLocation(multiviewProgram, "modelViewProjection"));
+multiviewModelLocation               = GL_CHECK(glGetUniformLocation(multiviewProgram, "model"));
+
+/* Upload matrices. */
+GL_CHECK(glUniformMatrix4fv(multiviewModelViewProjectionLocation, 2, GL_FALSE, modelViewProjectionMatrix[0].getAsArray()));
+GL_CHECK(glUniformMatrix4fv(multiviewModelLocation, 1, GL_FALSE, modelMatrix.getAsArray()));
+\endcode
+
+Anything rendered with this program while the multiview framebuffer object is bound will be rendered to both texture
+layers from different view angles without having to do do multiple draw calls. Having rendered your VR scene to separate
+layers for each eye, the results now need to be rendered to the screen. This is easily done by binding the texture and
+rendering with it as a 2D array texture. For a VR application, two viewports can be set up, and for each viewport the
+relevant texture layer is rendered to the screen. This can be a simple blitting of the texture to the screen, or it can
+do filtering or other post processing operations on the texture before displaying it. As the texture is an array, the
+texture sampling operation needs a vec3 texture coordinate, where the last coordinate indexes into the array. In order
+for each draw call to choose different layers, a uniform with the layer index can be provided as in the following
+fragment shader.
+
+\code
+#version 300 es
+precision mediump float;
+precision mediump int;
+precision mediump sampler2DArray;
+in vec2 vTexCoord;
+out vec4 fragColor;
+uniform sampler2DArray tex;
+uniform int layerIndex;
+void main()
+{
+    fragColor = texture(tex, vec3(vTexCoord, layerIndex));
+}
+\endcode
+
+\section multiviewMultipleFOV Rendering to different fields-of-view for virtual reality
+
+A VR technique that can easily be achieved using multiview rendering is rendering with a higher resolution in the center
+of each eye's view, with gradually lower resolution further away from the center. Eyes are capable of observing higher
+resolutions in the center of their view, and this can therefore give better visual results than rendering the entire
+scene in one resolution. This can be achieved using the multiview extension by rendering to more than one texture layer
+per eye with different fields-of-view, and blending the resulting layers. One texture layer can be rendered to using a
+projection matrix giving a wide field of view, rendering the entire scene. Another texture layer can be rendered to
+using a narrower field of view, so that it only renders the center of the screen, where the eye will be able to see a
+higher resolution image. As each layer has the same dimensions, the layer with the narrow field of view will be a much
+higher resolution version of the center of the scene. These two layers can then be blended together to create an image
+with varying resolution. This method can also give a performance boost, as the FBO can use half the resolution while
+still getting the same dpi in the center of the screen. Even though you are rendering 4 layers instead of 2, this still
+cuts the total number of pixels in half. This technique also combines well with barrel distortion warping, which is a
+common virtual reality technique for making the virtual reality image look correct through a lens. The barrel distortion
+warping makes objects closer to the center of the viewport larger than objects in the edges. Combined with a varying
+resolution, this can give a higher resolution for the enlarged objects and a lower resolution for the objects that are
+made smaller by the barrel distortion warping.
+
+To implement the varying resolution, we first set up a multiview framebuffer object in the same way as shown before,
+only with 4 layers instead of 2 as there are 2 layers per eye:
+
+\code
+bool setupFBO(int width, int height)
+{
+    // Create array texture
+    GL_CHECK(glGenTextures(1, &frameBufferTextureId));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D_ARRAY, frameBufferTextureId));
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    GL_CHECK(glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, width, height, 4));
+
+    /* Initialize FBO. */
+    GL_CHECK(glGenFramebuffers(1, &frameBufferObjectId));
+
+    /* Bind our framebuffer for rendering. */
+    GL_CHECK(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBufferObjectId));
+
+    /* Attach texture to the framebuffer. */
+    GL_CHECK(glFramebufferTextureMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                              frameBufferTextureId, 0, 0, 4));
+
+    /* Create array depth texture */
+    GL_CHECK(glGenTextures(1, &frameBufferDepthTextureId));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D_ARRAY, frameBufferDepthTextureId));
+    GL_CHECK(glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_DEPTH_COMPONENT24, width, height, 4));
+
+    /* Attach depth texture to the framebuffer. */
+    GL_CHECK(glFramebufferTextureMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                              frameBufferDepthTextureId, 0, 0, 4));
+
+    /* Check FBO is OK. */
+    GLenum result = GL_CHECK(glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER));
+    if (result != GL_FRAMEBUFFER_COMPLETE)
+    {
+        LOGE("Framebuffer incomplete at %s:%i\n", __FILE__, __LINE__);
+        /* Unbind framebuffer. */
+        GL_CHECK(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+        return false;
+    }
+    return true;
+}
+\endcode
+
+The shaders for rendering the scene are also the same except that the vertex shader specifies num_views to be 4 rather
+than 2, and takes in arrays of length 4 instead of 2 for the matrices:
+
+\code
+#version 300 es
+#extension GL_OVR_multiview : enable
+
+layout(num_views = 4) in;
+
+in vec3 vertexPosition;
+in vec3 vertexNormal;
+uniform mat4 ModelViewProjection[4];
+uniform mat4 model;
+out vec3 v_normal;
+
+void main()
+{
+    gl_Position = ModelViewProjection[gl_ViewID_OVR] * vec4(vertexPosition, 1.0);
+    v_normal = (model * vec4(vertexNormal, 0.0)).xyz;
+}
+\endcode
+
+The following code then sets up the projection and view matrices for rendering the scene 4 times. The first two
+perspective matrices use a 90 degree field of view, rendering the entire scene for each eye. This will be used as the
+low resolution texture when creating the final image. The next two perspective matrices use a 53.13 degree field of
+view, as this gives a near plane that is exactly half the size of the 90 degree matrices (tan(53.13/2) * 2 == tan(90/2)).
+This will be used as the high resolution image. Making the high resolution near plane exactly half the size of the low
+resolution near plane makes interpolating between the images simpler, as the texture coordinates for the low resolution
+image can go from 0 to 1, while the texture coordinates for the high resolution image go from -0.5 to 1.5. The high
+resolution image will then only be sampled in the middle half of the screen, and its contents will match the content of
+the low resolution texture at the same screen coordinates, only with a higher resolution.
+
+\code
+/* M_PI_2 rad = 90 degrees. */
+projectionMatrix[0] = Matrix::matrixPerspective(M_PI_2, (float)width / (float)height, 0.1f, 100.0f);
+projectionMatrix[1] = Matrix::matrixPerspective(M_PI_2, (float)width / (float)height, 0.1f, 100.0f);
+/* 0.9272952188 rad = 53.1301024 degrees. This angle gives half the size for the near plane. */
+projectionMatrix[2] = Matrix::matrixPerspective(0.9272952188f, (float)width / (float)height, 0.1f, 100.0f);
+projectionMatrix[3] = Matrix::matrixPerspective(0.9272952188f, (float)width / (float)height, 0.1f, 100.0f);
+
+/* Setting up model view matrices for each of the */
+Vec3f leftCameraPos =  {-1.5f, 0.0f, 4.0f};
+Vec3f rightCameraPos = {1.5f, 0.0f, 4.0f};
+Vec3f lookAt =         {0.0f, 0.0f, -4.0f};
+Vec3f upVec =          {0.0f, 1.0f, 0.0f};
+viewMatrix[0] = Matrix::matrixCameraLookAt(leftCameraPos,  lookAt, upVec);
+viewMatrix[1] = Matrix::matrixCameraLookAt(rightCameraPos, lookAt, upVec);
+viewMatrix[2] = Matrix::matrixCameraLookAt(leftCameraPos,  lookAt, upVec);
+viewMatrix[3] = Matrix::matrixCameraLookAt(rightCameraPos, lookAt, upVec);
+
+modelViewProjectionMatrix[0] = projectionMatrix[0] * viewMatrix[0] * modelMatrix;
+modelViewProjectionMatrix[1] = projectionMatrix[1] * viewMatrix[1] * modelMatrix;
+modelViewProjectionMatrix[2] = projectionMatrix[2] * viewMatrix[2] * modelMatrix;
+modelViewProjectionMatrix[3] = projectionMatrix[3] * viewMatrix[3] * modelMatrix;
+
+multiviewModelViewProjectionLocation = GL_CHECK(glGetUniformLocation(multiviewProgram, "modelViewProjection"));
+multiviewModelLocation               = GL_CHECK(glGetUniformLocation(multiviewProgram, "model"));
+
+/* Upload matrices. */
+GL_CHECK(glUniformMatrix4fv(multiviewModelViewProjectionLocation, 4, GL_FALSE, modelViewProjectionMatrix[0].getAsArray()));
+GL_CHECK(glUniformMatrix4fv(multiviewModelLocation, 1, GL_FALSE, modelMatrix.getAsArray()));
+\endcode
+
+Every draw call using the shader and matrix setup shown above will render to all 4 layers of the framebuffer object
+using the different view and projection matrices. The resulting images will then be blended to the screen to create a
+varying resolution image for each eye using the following shaders.
+
+\code
+#version 300 es
+in vec3 attributePosition;
+in vec2 attributeLowResTexCoord;
+in vec2 attributeHighResTexCoord;
+out vec2 vLowResTexCoord;
+out vec2 vHighResTexCoord;
+void main()
+{
+    vLowResTexCoord = attributeLowResTexCoord;
+    vHighResTexCoord = attributeHighResTexCoord;
+    gl_Position = vec4(attributePosition, 1.0);
+}
+
+#version 300 es
+precision mediump float;
+precision mediump int;
+precision mediump sampler2DArray;
+in vec2 vLowResTexCoord;
+in vec2 vHighResTexCoord;
+out vec4 fragColor;
+uniform sampler2DArray tex;
+uniform int layerIndex;
+void main()
+{
+    vec4 lowResSample = texture(tex, vec3(vLowResTexCoord, layerIndex));
+    vec4 highResSample = texture(tex, vec3(vHighResTexCoord, layerIndex + 2));
+    // Using squared distance to middle of screen for interpolating.
+    vec2 distVec = vec2(0.5) - vHighResTexCoord;
+    float squaredDist = dot(distVec, distVec);
+    // Using the high res texture when distance from center is less than 0.5 in texture coordinates (0.25 is 0.5 squared).
+    // When the distance is less than 0.2 (0.04 is 0.2 squared), only the high res texture will be used.
+    float lerpVal = smoothstep(-0.25, -0.04, -squaredDist);
+    fragColor = mix(lowResSample, highResSample, lerpVal);
+}
+\endcode
+
+A viewport for each eye is created, and for each viewport this shader program is used to draw a full screen textured
+quad. There are different texture coordinates for the high resolution and low resolution images, as the high resolution
+image should be drawn at half the size of the low resolution image and centered in the middle of the screen. This is
+achieved by the following texture coordinates:
+
+\code
+/* Textured quad low resolution texture coordinates */
+float texturedQuadLowResTexCoordinates[] =
+{
+    0, 0,
+    1, 0,
+    1, 1,
+
+    0, 0,
+    1, 1,
+    0, 1
+};
+
+/* Textured quad high resolution texture coordinates */
+float texturedQuadHighResTexCoordinates[] =
+{
+    -0.5, -0.5,
+     1.5, -0.5,
+     1.5,  1.5,
+
+    -0.5, -0.5,
+     1.5,  1.5,
+    -0.5,  1.5
+};
+\endcode
+
+The layerIndex used to select the texture array layer is set up in the same way as in the earlier example, but the
+shader will sample both the layer at layerIndex and the one at layerIndex + 2, as the last 2 layers in the array texture
+contain the high resolution images. The sampled colors are then interpolated based on the distance to the middle of the
+screen. The shader calculates the squared distance to the middle of the screen rather than the actual distance as this
+removes the need for doing a square root operation. This works as long as the limits used in the smoothstep call are
+adjusted accordingly, which gives no extra work as these are constant values.
+
+After drawing a full screen quad using this shader for each eye viewport, the high and low resolution images have been
+blended to give higher resolution in the center of the image where the eye is focused, with the resolution gradually
+decreasing further away from the center, where the eye is not focusing. The image in the introduction shows the result,
+where 3 rotating cubes have been drawn from each eye, and the center of each eye's viewport gets a higher resolution
+than the rest of the screen. The following image is a lower resolution version of the same scene, making it easier to
+see how the resolution increases towards the center of each eye's viewport.
+
+\image html low_res_multiview_sample_screen.png "Low resolution multiview rendering sample."
+
+This technique can also be used to create a movable focal point, i.e. for directing the viewer's focus towards a certain
+part of the scene. To do this, the camera for the high resolution image would have to be moved around to capture
+different parts of the scene, and the texture coordinates used when blending would have to be adjusted accordingly.
+
+\section multiviewReferences References
+
+<a name="ref1">[1]</a> http://www.khronos.org/registry/gles/extensions/OVR/multiview.txt
+
+<a name="ref2">[2]</a> http://www.khronos.org/registry/gles/extensions/OVR/multiview2.txt
+*/

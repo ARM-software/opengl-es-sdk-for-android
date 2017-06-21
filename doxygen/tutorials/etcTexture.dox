@@ -1,0 +1,181 @@
+/** \page etcTexture ETC2 Texture
+
+\brief Demonstration of ETC2 texture compression support in OpenGL ES 3.0.
+
+\section etcTextureIntroduction Introduction
+
+It is assumed that you have read and understood all of the mechanisms described in \ref assetLoading,\ref simpleTriangle and \ref textureCube.
+
+\section etcTextureOverview Overview
+
+\image html ETC2TextureDemo_android.png "The application cycles through all of the texture formats supported by OpenGL ES 3.0."
+
+Compressed textures are loaded and displayed on the screen. The internal format of each texture is displayed
+at the bottom of the screen.
+The application cycles through all of the texture formats supported by OpenGL ES 3.0.
+
+Formats:
+ -# GL_COMPRESSED_R11_EAC:                        11 bits for a single channel. Useful for single channel data where
+                                                  higher than 8 bit precision is needed. For example, heightmaps.
+ -# GL_COMPRESSED_SIGNED_R11_EAC:                 Signed version of GL_COMPRESSED_SIGNED_R11_EAC, useful when signed
+                                                  data is needed.
+ -# GL_COMPRESSED_RG11_EAC:                       11 bits for two channels. Useful for two channel data where higher
+                                                  than 8 bit precision is needed. For example, normalised bump maps,
+                                                  the third component can be reconstructed from the other two components.
+ -# GL_COMPRESSED_SIGNED_RG11_EAC:                Signed version of GL_COMPRESSED_RG11_EAC, useful when signed data is needed.
+ -# GL_COMPRESSED_RGB8_ETC2:                      8 bits for three channels. Useful for normal textures without alpha values.
+ -# GL_COMPRESSED_SRGB8_ETC2:                     sRGB version of GL_COMPRESSED_RGB8_ETC2.
+ -# GL_COMPRESSED_RGBA8_ETC2_EAC:                 8 bits for four channels. Useful for normal textures with varying alpha values.
+ -# GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:          sRGB version of GL_COMPRESSED_RGBA8_ETC2_EAC.
+ -# GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:  8 bits for three channels and a 1 bit alpha channel. Useful for normal
+                                                  textures with binary alpha values.
+ -# GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2: sRGB version of GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2.
+
+\section etcTextureGeneratingCompressedImages Generating Compressed Images
+
+One of the possible ways of generating ETC2 images is to use the *ARM Mali Texture Compression Tool* which you can find here: <http://malideveloper.arm.com>. Once you have installed the tool, you can load any texture (stored in jpg, png or any other supported file formats). Then try to compress the image using the ETC2 compressor by selecting the compression format you are interested in. The result will be stored in a PKM file.
+
+\image html ETC2TextureDemo_TctCompression.png "Generating compressed files using the ARM Mali Texture Compression Tool."
+
+When you generate compressed textures, you can use them in the following steps.
+
+\section etcTextureGCompressedTexturesRendering Render Compressed Textures on a Screen
+
+In this section we will describe how to render a compressed texture onto the screen. For each ETC2 compression format supported by OpenGL ES 3.0, we will have a separate texture object. In the steps described below, we will however focus on dealing with a single texture object, as the same steps should be repeated for all the texture formats we want to display.
+
+\subsection etcTextureGCompressedTexturesRendering_GenerateTexture Generate Texture Object
+
+We need to start by generating a texture object ID.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Generate texture object ID
+
+Once we get one, we need to bind it to the *GL_TEXTURE_2D* target.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Bind texture object
+
+It is important to set the texture object's parameters, so that the texture will be properly displayed on the screen.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Set texture object parameters
+
+Now, we fill the texture object with data.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Fill texture object with data
+
+If the *internalformat* argument value is considered, you should use one of the ETC2 internalformats supported by OpenGL ES 3.0, which are listed below (which of course correspond to the internalformat of the compressed texture we are using here).
+
+|Compressed Internal Format                  |Image Size                         |
+|:-------------------------------------------|:----------------------------------|
+|GL_COMPRESSED_R11_EAC                       |ceil(width/4) * ceil(height/4) * 8 |
+|GL_COMPRESSED_SIGNED_R11_EAC                |ceil(width/4) * ceil(height/4) * 8 |
+|GL_COMPRESSED_RG11_EAC                      |ceil(width/4) * ceil(height/4) * 16|
+|GL_COMPRESSED_SIGNED_RG11_EAC               |ceil(width/4) * ceil(height/4) * 16|
+|GL_COMPRESSED_RGB8_ETC2                     |ceil(width/4) * ceil(height/4) * 8 |
+|GL_COMPRESSED_SRGB8_ETC2                    |ceil(width/4) * ceil(height/4) * 8 |
+|GL_COMPRESSED_RGBA8_ETC2_EAC                |ceil(width/4) * ceil(height/4) * 16|
+|GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC         |ceil(width/4) * ceil(height/4) * 16|
+|GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2 |ceil(width/4) * ceil(height/4) * 8 |
+|GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2|ceil(width/4) * ceil(height/4) * 8 |
+
+At this point there is one thing that is unclear: what values should be used for *imageWidth*, *imageHeight*, *imageSize*, *imageData* in *glCompressedTexImage2D()* call? Those values should correspond to the data retrieved from PKM file, as shown below.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Load compressed image data
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Get image properties
+
+\subsection etcTextureGCompressedTexturesRendering_LoadPkmData Load PKM image data
+
+The very first thing you should do is to set the pixel storage mode so that the proper alignment will be used whilst reading the texture images.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Set pixel storage mode
+
+Then, you should open and read the PKM file as implemented in the functions presented below.
+
+\snippet samples/tutorials/EtcTexture/jni/Texture.cpp Load PKM data
+\snippet samples/tutorials/EtcTexture/jni/Texture.cpp Load data from file
+
+Once you get the result, you can use the retrieved data in the *glCompressedTexImage2D()* call as already mentioned in the previous section (\ref etcTextureGCompressedTexturesRendering_GenerateTexture).
+
+\subsection etcTextureGCompressedTexturesRendering_RenderTexture Render texture on a screen
+
+In OpenGL ES, the basic geometry rendering technique is to render triangles. In our case, we want to render a simple quad onto which there will be a texture image applied.
+
+The first step is to generate vertex coordinates of the triangles that make up the quad (please note that we are interested in a quad in XY space).
+
+Please look at the image below. The schema show coordinates we are using in the application.
+
+\image html ETC2TextureDemo_Coordinates.png "Quad coordinates (blue) and corresponding texture UVs (red)."
+
+This is defined as follows.
+
+Coordinates of a triangles that are used to render a quad.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Array of coordinates describing quad
+
+Corresponding texture UVs.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Array of texture coordinates used for mapping texture to a quad
+
+We will need array buffer objects to store the coordinates described above.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Generate and initialize buffer objects
+
+There is no OpenGL ES 3.0 rendering without program objects, so we should now focus on that. First of all, we need to:
+
+ -# create program object ID,
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Create program object
+
+ -# create shader objects' IDs (should be called twice for *shaderType* equal to *GL_FRAGMENT_SHADER* and *GL_VERTEX_SHADER*),
+\snippet samples/tutorials/EtcTexture/jni/Shader.cpp Create shader object
+
+ -# set shader source, 
+\snippet samples/tutorials/EtcTexture/jni/Shader.cpp Load shader source
+\snippet samples/tutorials/EtcTexture/jni/Shader.cpp Attach shader source
+
+ -# compile shader (it is always a good idea to check, whether the compilation succeeded: *GL_COMPILE_STATUS* set to *GL_TRUE*,
+\snippet samples/tutorials/EtcTexture/jni/Shader.cpp Compile a shader
+\snippet samples/tutorials/EtcTexture/jni/Shader.cpp Get compilation status
+
+ -# attach shaders to program object,
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Attach shaders to program object
+
+ -# link program object,
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Link program object
+
+ -# use program.
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Select active program object
+
+The shaders we are using are rather simple and self-explanatory
+
+Vertex shader code:
+\snippet samples/tutorials/EtcTexture/assets/vertex_shader_source.vert Vertex shader code
+
+Fragment shader code
+
+\snippet samples/tutorials/EtcTexture/assets/fragment_shader_source.frag Fragment shader code
+
+The next step is to set values for the attributes and uniforms we are using in the shaders. To do that, we need to retrieve their locations. In the API, we are calling *glGetUniformLocation()* with the ID of a program and name of the uniform used in the shaders given as arguments. The analogous situation is to call *glGetAttribLocation()*, but this time we are using the attribute name instead.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Get uniform and attribute locations
+
+It is always a good idea to make sure that the uniform and attributes were found (which means that they are declared and used by the program object). If the returned value is equal to -1, then an attribute/uniform is considered inactive.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Check uniform and attribute location values
+
+Once we are sure that retrieved locations are valid, we can set values for the uniforms and attributes.
+
+By calling
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Set sample uniform value
+we are telling OpenGL ES to use a texture object that is currently bound to the *GL_TEXTURE_2D* target at the *GL_TEXTURE0* texture unit (if you are using GL_TEXTURE1 as the texture unit, the value for the uniform should equal 1) as an input to the program object.
+
+We wanted the application to cycle through all of the texture formats supported by OpenGL ES 3.0, which is why we will be re-binding the textures many times. This is done as shown below.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Bind the texture object
+
+How do we set values for attributes? The best way is to use *Vertex Attrib Arrays*. Do you remember the buffer objects we have created and filled with quad coordinates and texture UV data? We will use them now.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Enable VAAs
+
+The last thing to do is to issue the draw call.
+
+\snippet samples/tutorials/EtcTexture/jni/Native.cpp Draw quad with texture image
+
+*/

@@ -1,0 +1,95 @@
+/**
+\mainpage
+Welcome to OpenGL ES SDK for Android $(VERSION).
+
+\section about About
+
+The OpenGL&reg; ES SDK for Android is a collection of resources to help you build OpenGL ES applications
+for a platform with a Mali GPU and an ARM processor. You can use it for creating new applications,
+training, and exploration of implementation possibilities.
+
+You can use the Mali SDK to produce applications that will run on any devices that run Android&trade; on an ARM processor.
+
+\section requirements Requirements
+To build and run the OpenGL ES sample applications you will need:
+ -  An ARM based device with a Mali series GPU running Android.
+ -  <a href="https://developer.android.com/studio/index.html">Android Studio</a>.
+ -  The latest Android NDK, which should be downloaded automatically by Android Studio when you build the samples
+    (alternatively, you can install it by following the instructions <a href="https://developer.android.com/studio/projects/add-native-code.html#download-ndk">here</a>).
+
+\section gettingStarted Getting Started
+ -  See the \ref gettingStartedGuide for information on how to get started.
+ -  Have a look at some specific \ref tutorials.
+ -  If you get stuck with tutorials, look at \ref gettingStartedGuideBuildingTheSamples to see the solutions.
+ -  Get \ref support from ARM.
+
+\section changeLog Change Log
+Summary of changes between versions of the OpenGL ES SDK for Android.
+
+\subsection v212 Changes in version 2.1.2
+ -  Rewrote build system for Android Studio 2.2+ and CMake.
+ -  Changed license to MIT.
+
+\subsection v211 Changes in version 2.1.1
+ -  Added foveated rendering.
+
+\subsection v210 Changes in version 2.1.0
+ -  Added \ref multiview.
+ -  Added \ref oceanFFT.
+ -  Added \ref tessellation.
+ -  Added \ref proceduralGeometry.
+ -  Added MultisampledFBO sample.
+
+\subsection v200 Changes in version 2.0.0
+ -  Added \ref computeParticles.
+ -  Added \ref translucency.
+ -  Added \ref occlusionCulling.
+ -  Added \ref computeIntro.
+
+\subsection v190 Changes in version 1.9.0
+ -  Added \ref instancedTessellation.
+
+\subsection v180 Changes in version 1.8.0
+ -  Added Occlusion Query tutorial.
+
+\subsection v170 Changes in version 1.7.0
+ -  Added Min Max Blending tutorial.
+ -  Added Integer Logic tutorial.
+ -  Added ETC2 Texture tutorial.
+ -  Added Boids tutorial.
+ -  Added Shadow Mapping tutorial.
+ -  Added Instancing tutorial.
+ -  Added Projected Lights tutorial.
+
+\subsection v160 Changes in version 1.6.0
+ -  Added Asset loading tutorial.
+ -  Added "Introduction to shaders" tutorial.
+ -  Added Mipmapping and Compressed Textures tutorial.
+ -  Removed EGLImage sample due to deprecation.
+
+\subsection v150 Changes in version 1.5.0
+ -  Added Bloom tutorial.
+ -  Added Metaballs sample.
+ -  Added Terrain sample.
+ -  Added Skybox sample.
+ -  Added ASTC Texture sample.
+ -  Added Lighting, Normal Mapping, Asset Loading and VBO tutorials.
+
+\subsection v140 Changes in version 1.4.0
+ -  Added HighQualityTextJava sample.
+ -  Added SimpleCube and TextureCube tutorials.
+ -  Added EGLImage sample.
+ -  Added ThreadSync sample.
+
+ \subsection v130 Changes in version 1.3.0
+ -  Added new tutorials.
+
+\subsection v100 Changes in version 1.0.0
+ -  First release of the OpenGL ES SDK for Android.
+
+\section contents Contents
+Directory     | Contents
+------------- | -------------
+docs          | Documentation for the SDK including tutorials.
+samples       | Sample OpenGL ES applications.
+*/

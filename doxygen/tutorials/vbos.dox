@@ -1,0 +1,136 @@
+/**
+\page vbos Vertex Buffer Objects
+\brief How to use Vertex Buffer Objects to reduce the bandwidth in your application.
+
+\section vboIntroduction Introduction
+
+The source for this sample can be found in the
+\if windows
+*samples\\tutorials\\Vbo*
+\endif
+\if linux
+*samples/tutorials/Vbo*
+\endif
+folder of the SDK.
+
+These tutorials have always had a mobile focused approach.
+As we have mentioned in many previous tutorials, mobile devices have limited resources compared to desktop.
+One of the most important considerations you must make is the amount of bandwidth your application will use.
+One way you can dramatically reduce your bandwidth footprint is to use something called Vertex Buffer Objects(VBOs).
+In all of the previous examples we have defined attributes such as vertex position, vertex colour, and vertex normals in main memory.
+Then in every frame we upload them to the GPU so that it can render your scene.
+Wouldn't it be great if we could just upload all this data once and forget about it? This way you would be reducing your bandwidth quite considerably because the data would no longer be sent to the GPU every frame.
+Well the good news is there is a way to do this and that is to use VBOs.
+
+\section vboGeneration Generating the buffers
+
+The first thing we need to do is to create the buffers to hold our data.
+The method to create vertex buffers is the same as creating our texture objects in the \ref textureCube example.
+First you need to define an array of integers that will hold IDs for our buffer objects.
+In our example we are going to define 2, one for all our vertex related data and one for our indices.
+
+\snippet samples/tutorials/Vbo/jni/Native.cpp vboIDDefinition
+
+Now we need to give our integers valid values as they have not been initialized.
+To do this we need to add a new function call to our setupGraphics function.
+This function is called glGenBuffers and works just like glGenTextures.
+The first parameter is how many buffers you want to create and the second is a pointer to an array of integers that will hold the IDs for our buffer objects.
+
+\snippet samples/tutorials/Vbo/jni/Native.cpp vboCreation
+
+The next stage is that we need to bind the newly created IDs to their appropriate targets.
+There are two different target types: GL_ARRAY_BUFFER and GL_ELEMENT_ARRAY_BUFFER. These are used for vertices and indices respectively.
+If you don't call the bind buffer functions above in your code, OpenGL ES assumes that you don't want to use VBOs and will expect you to upload the information each time.
+Note, If you want to go back to this way of working after you have been using VBOs in your application then you need to recall the glBindBuffer function with 0.
+An example of this is shown below:
+
+\code
+glBindBuffer(GL_ARRAY_BUFFER, 0);
+glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+\endcode
+
+Now we have both of our buffers bound we need to allocate space to fill them with data.
+We do this with a function called glBufferData.
+glBufferData takes 4 parameters the target, which needs to be the same one as the above function, the size, the data for the buffer and then how the buffer will be used.
+
+\snippet  samples/tutorials/Vbo/jni/Native.cpp vboAllocateSpace
+
+This first interesting parameter is the size.
+Here we set it to vertexBufferSize which is defined earlier in the program. It is displayed below for your convenience:
+
+\snippet samples/tutorials/Vbo/jni/Native.cpp vboBufferSize
+
+We set this varible to 48 and then times this number by 3 times the sizeof(GLfloat) to give the size of the buffer we need in bytes. This is due to the fact that each vertex position is defined by 3 GLfloat components X, Y and Z.
+Now in previous cube examples we only have 24 vertices but yet we have set this number to 48 which is twice the amount of vertex positions we have been using.
+Our vertex positions are usually defined at 24 because we are using 4 vertex positions to define each face of the cube.
+However, we are combining the vertex colour data as well which also has 4 values per face. We do this by using something called a stride which is explained in depth in a later section.
+Note it is possible to include anything that you define per vertex into one single buffer.
+The reason we haven't is that in this example we only deal with position and colour. Another thing to note is that if you wanted you could still keep all of the arrays separate and create numerous VBOs.
+This tutorial is just showing you another way to arrange your data.
+Similarly if you want to go back to the previous examples and just create one array instead of numerous arrays then this is just as valid
+
+Going back to glBufferData, there is only one more odd parameter and that is the last one.
+This simply gives OpenGL ES a hint on how you intend to use the buffer.
+There are three options: GL_STATIC_DRAW, GL_DYNAMIC_DRAW, and GL_STREAM_DRAW.
+The first means that you will only modify the data once and then it will be used many times.
+This is the option we want as our geometry won't change during the scene.
+The second means that you will modify the buffer numerous times and then use it to draw numerous times.
+The final option means that you will again only modify it once but this time you are saying you only need it a few times as well.
+It is worth noting this is only a hint, you are quite within your rights to use GL_STATIC_DRAW and modify the data should you wish.
+
+We do exactly the same for the indices.
+The only differences are that we use GL_ELEMENT_ARRAY_BUFFER instead of GL_ARRAY_BUFFER and the elementBufferSize is 36 multiplied by GLushort because we are going to draw 12 trianges each with 3 indicies and the type in which we defined our indicies is GLushort.
+
+\snippet samples/tutorials/Vbo/jni/Native.cpp vboElementSize
+
+\section vboSortingData Changing the Way we Store Data
+
+In an earlier section we mentioned that we were going to add all of our per vertex information into one VBO. The way we do that is we interleave the data.
+That means we first have one vertex position and then the colour that is associated with that position.
+Then we place the second vertex position.
+If you are using more per vertex attributes then you need to interleave those as well. So in the Lighting example we would have written a vertex position followed by a colour position followed by a vertex normal.
+The code below should help you visualise this better.
+
+\snippet  samples/tutorials/Vbo/jni/Native.cpp vboVertexData
+
+\section vboVertexAttribChanges Changes in glVertexAttribPointer
+
+Now we have two problems that we need to solve with glVertexAttribPointer.
+The first is that now we are using VBOs instead of sending the data each time.
+So sending a pointer to our vertices is not needed as we are not using that data anymore.
+Really what we want to do is change the value to an offset into our VBO where it can find the data.
+The second problem we have is that we now don't have a vertex position next to another vertex position.
+We have a colour instead so we need to have way of telling Open GL where the next relevant component is in the array.
+
+\snippet  samples/tutorials/Vbo/jni/Native.cpp vboVertexAttribPointer
+
+The first line in the above code deals with our vertex positions.
+Instead of passing an array to values in the final parameter we put 0. This is because the very first element in our VBO is a vertex element so there is no need for an offset. If you look at the glVertexAttribPointer function call related to the colour you will see that we use vertexColourOffset instead. Note, just for compiler type checking we need to cast this as const void *. The value of vertexColourOffset is 3 * sizeof(GLfloat) as shown below:
+
+\snippet samples/tutorials/Vbo/jni/Native.cpp vboColourOffset
+
+The reason for this is we need to define the offset into the VBO in bytes.
+Now there is a vertex position before the colour, and each vertex position has 3 GLfloat components (X,Y, and Z).
+The second problem is dealt with by something called a stride.
+This basically is the number of bytes between the first element in the first component and the first element in the next component and is defined below:
+
+\snippet samples/tutorials/Vbo/jni/Native.cpp vboStrideSize
+
+As you can see the value is 6 multiplied by the size of GLfloat.
+The reason for this is if the value isn't 0 like in the previous example it should be the difference in bytes between the value of the first element in a component to the first element in the next component, because in our example we have X Y Z R G B X Y Z. There is a clear gap of 6 GLfloats between X of the first element and X of the second element.
+The colour has the same stride length as again it is 6 multiplied by the size of GLfloat between the first R colour component and the the second R colour component.
+
+\section vboDrawCallChanges Changes in glDrawElements
+
+The final change we need to do in this tutorial is to glDrawElements.
+We are going to do much the same thing that we did to glVertexAttrib pointer because we don't need to pass an array in anymore.
+Instead we just need to provide an offset into the VBO.
+In this case as we want to draw all the elements (starting from the begining) this offset is 0.
+
+\snippet samples/tutorials/Vbo/jni/Native.cpp vboDrawElements
+
+\section assetLoadingBuildRun3 Building and Running the Application
+
+Follow the \ref gettingStartedGuide from \ref gettingStartedGuideBuildingTheSamples onwards to build and run the application.
+
+*/

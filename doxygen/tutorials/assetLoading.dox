@@ -1,0 +1,94 @@
+/**
+\page assetLoading Asset Loading
+\brief Using the Open Asset Importer to load models into OpenGL ES.
+
+\section assetLoadingExampleIntroduction Introduction
+
+The source for this sample can be found in the
+\if windows
+*samples\\tutorials\\AssetLoading*
+\endif
+\if linux
+*samples/tutorials/AssetLoading*
+\endif
+folder of the SDK.
+
+In the tutorials so far all of the geometry for the scenes has been hand crafted and stored in the source files for the examples.
+We've hinted in previous tutorials that in the real-world, people use modeling tools to create their scenes.
+In this tutorial we'll show you how to load simple model files using the <a href="http://assimp.sourceforge.net/">Open Asset Importer library</a>.
+
+\section assetLoadingNewProject Setting up the Project
+
+For the tutorial, the \ref simpleCube project will be used as a starting point.
+So either copy the project or create a completely new project and include the source files from the previous project.
+The project should be called **AssetLoading** and the package name should be called *com.arm.malideveloper.openglessdk.assetloading*.
+Finally, the activity class (previously *SimpleCube.java*) should be renamed **AssetLoading.java** using Eclipse (this ensures references to the activity get updated elsewhere in the project).
+
+\section assetLoadingPrebuilt Using external libraries in Android
+
+In order to use the Open Asset Importer library we first need to build it for Android and then reference it as part of our build process.
+The Open Asset Importer library uses a CMake based build system which makes it easy to build for most platforms.
+To make things a bit easier we have provided a prebuilt version of the the Open Asset Importer library for Android and the required header files in the *assimp* folder of the tutorial.
+If you want to build the Open Asset Importer for Android yourself, there are a few tutorials and open source projects to add Android support to CMake available online.
+
+To use this prebuilt library we have to tell CMake where to find the built library and its header files. The CMake code for importing the library look like this:
+
+\snippet tutorials/AssetLoading/CMakeLists.txt Assimp Import Library
+
+The first line declares that the library already exists and so the build system knows it doesn't have to try and build it.
+The rest of the file describes the various parameters of a prebuilt library.
+It tells the CMake build system the name of the module (so we can reference it elsewhere), the name of the actually library file, and the location of the header files which any project using the library will need.
+Those header files will automatically get added to the include path of any project referencing this library.
+
+You can use similar code to include other prebuilt libraries for CMake.
+
+\section assetLoadingUsingAssimp Using the Open Asset Importer library.
+
+The Open Asset Importer can load models store in a variety of different formats.
+It converts these to a standard internal format which we can access in a consistent manner.
+Different model formats can store a variety of different features, for example:
+ -  Geometry
+ -  Normals
+ -  Textures
+ -  Materials
+ -  Bones
+ -  Animation
+
+For this tutorial we are going to focus on just geometry.
+
+The Open Asset Importer loads the geometry into one or more meshes, and stores a list of faces which index into the geometry.
+This is very similar to how OpenGL ES works with glDrawElements, you give OpenGL ES a list of all the vertices you require and then give it a list of indices into that list to draw your polygons.
+
+We will load the model in the *setupGraphics* function.
+First we pass in the data to the Open Asset Importer:
+
+\snippet tutorials/AssetLoading/jni/Native.cpp Load a model into the Open Asset Importer.
+
+The Open Asset Importer is capable of loading model files directly, however, because loading files on Android from native code is non-trivial, we are using a buffer instead.
+We define a buffer which represents a model file, pass that to the Open Asset Importer along with a hint to tell it which file format we are using.
+Here we are using the Neutral File Format (documentation can be found <a href="http://tog.acm.org/resources/SPD/NFF.TXT">here</a>).
+This particular buffer represents a sphere (s) at the origin (0 0 0) with radius 10.
+
+After we've loaded a file into the Open Asset Importer, we simply extract all the vertices in the meshes into and array and then all the indices into another.
+
+\snippet tutorials/AssetLoading/jni/Native.cpp Accumulate the model vertices and indices.
+
+If you want to load textures, animation, or any of the other advance features it is slightly more complex.
+Have a look a the Open Asset Importer documentation for more information.
+
+We then pass these arrays to OpenGL ES in the *renderFrame* function:
+
+\snippet tutorials/AssetLoading/jni/Native.cpp Pass the the model vertices and indices to OpenGL ES.
+
+And there you have it, now instead of specifying your models manually, you can load them from your favourite modeling software.
+This means that you can create, edit, and fine tune your models in a 3D modeling application and then import directly into your application.
+The Open Asset Importer supports around 40 different import formats, including all the most popular one, so it should cover most assets you might want to use.
+
+\section assetLoadingBuildRun Building and Running the Application
+
+Follow the \ref gettingStartedGuide from \ref gettingStartedGuideBuildingTheSamples onwards to build and run the application.
+
+\section assetLoadingNextSteps Next Steps
+
+You can extend this sample to load normals and textures as well. The \ref textureCube and \ref lighting may be useful here.
+*/

@@ -1,0 +1,168 @@
+/**
+\page firstNative First Android Native Application
+\brief An introduction and walkthrough of Android native applications.
+
+\section firstNativeIntroduction Introduction
+
+The source for this sample can be found in the
+\if windows
+*samples\\tutorials\\FirstNative*
+\endif
+\if linux
+*samples/tutorials/FirstNative*
+\endif
+folder of the SDK.
+
+This guide will talk you through creating your first Android Native Application. It is assumed that you
+have already completed the \ref gettingStartedGuide and have run a Google sample application on your device.
+
+The steps involved are relatively straight forward but this guide will form the basis of all other
+tutorials in the SDK. We will introduce you to both the Java side and the native side of your
+application and write a simple application that uses both.
+
+\section firstNativeBasicApplicationFlow Basic Application Flow
+
+An Android application is usually split up into two parts: the standard Android side and the native side.
+In the standard Android side, that is written in Java, you set up the surface that
+is needed to draw your graphics and also do any other application specific setup. The native side is where you put all
+your code that will render your scene. Typically the native side of your application will be written in
+either C or C++.
+
+\section firstNativeCreatingNewProject Creating A New Project
+
+The first thing you need to do is to create your project that will be your application. Open up Eclipse and
+then click *File -> New Project*. From the selection that appears click *Android* and then *Android Application
+Project*. Once this is done click on the *Next* button.
+
+You should then be taken to a new screen that provides 3 text boxes that needed to be filled in. For both
+the *Application Name* and *Project* write **FirstNative**. The package name by convention should be the website
+of your company backwards and then the application name for example arm.com.malideveloper.openglessdk.firstnative,
+but it can be anything you want as long as there are some fullstops included.
+So for now lets use **arm.com.malideveloper.openglessdk.firstnative**.
+
+For the drop down selection boxes make sure the *Minimum Required SDK* is **API8:Android 2.2(Froyo)** but all
+the other options can be anything you want. When you are done selecting options click the *Next* button.
+On the next screen that appears, untick the *Create custom launcher* icon, as for this example we will skip over this step.
+Press the *Next* button 2 more times, change the *Activity Name* to **FirstNative** and then click *Finish*.
+
+Eclipse should now have created a dummy application for you. You should be able to build this and run it on
+a device. To do this make sure your device is plugged in and then right click on FirstNative in the
+*Package Explorer* view. From the list select *Build Project*. Do these steps twice to generate the apk file. Now click on *Run*
+and then from the box that appears select the device you want to run your application on. Then click *OK*.
+The application should now be running on your device. At the moment this won't be very exciting.
+
+\section firstNativeCreatingAppropriateFiles Creating the Appropriate Files for our Project
+
+This program is going to consist of two Java files and one C file. The first Java file has already been created
+and is called FirstNative.java. As mentioned before, this holds the first function that is run in your
+application. The second is going to act as the interface between the Java side and the native side of the application. To
+create this we need to right click on FirstNative and select *New -> File*. From the directory structure
+that appears navigate yourself to *FirstNative->com->arm->malideveloper->openglessdk->firstnative* and then enter the filename
+**NativeLibrary.java** and then click *Finish*. NativeLibrary.java should now be added to the same location as
+FirstNative.java.
+
+Now as you have already seen the application runs fine without having a native side. In fact most
+applications on the Android Marketplace don't have a native side. So we need to tell Eclipse to add one to
+our project. Right click on the project and then select *Android Tools*. From there click the option that says *Add Native
+Support*. A box should appear asking what you would like the native library to be called. Just enter **Native**
+and click *Finish*.
+This should create a new folder in your project labelled jni and inside there should be Native.cpp.
+
+\section firstNativeFirstNative FirstNative Class
+
+As mentioned before, this class holds the first function to be called in your application. It also deals
+with most of the interactions directly with Android. Here are the first few lines of code:
+
+\snippet tutorials/FirstNative/src/com/arm/malideveloper/openglessdk/firstnative/FirstNative.java Imports
+
+The first line should be included in all of your Java source files. This tells your application which
+package this Java file belongs too. The next lines refer to files you also need to import for your
+application to work. As this class is going to be the starting point of your activity you need to import the Activity class.
+Note the logging import helps with debugging in your application. It enables printf like debugging in your Android application.
+
+\snippet tutorials/FirstNative/src/com/arm/malideveloper/openglessdk/firstnative/FirstNative.java Class definition
+
+Now we proceed with the class definition. As we don't want to start our class from scratch we say that it
+extends the Activity class. Which indicates to Android this is the starting class. Inside this class we
+have a member variables. This member variable is a string that we use when we are providing logging information.
+
+\snippet tutorials/FirstNative/src/com/arm/malideveloper/openglessdk/firstnative/FirstNative.java onCreate
+
+This is the first function in our class and it is also the first function that gets called in our
+application. As we are not interested in most of the setup ourself we call the onCreate method of the super class.
+We then add our first debug statement. This will output the string 'On Create method Calling native Library'
+which will be visible in LogCat.
+
+Logcat is the Android logging tool and it is very useful. To view it you just need to go into the folder
+that you installed the Android SDK Bundle from the getting started guide. In there should be a tool called
+adb. In your shell or command line type:
+
+\code
+adb logcat
+\endcode
+
+There are multiple levels of logging. The one we used in this example is the debugging level but there are
+also info level, error level and various others. It is something well worth looking into if you get the
+chance. The final
+line of onCreate calls into the native side of the application using the NativeLibrary class that we are
+yet to write.
+
+\snippet tutorials/FirstNative/src/com/arm/malideveloper/openglessdk/firstnative/FirstNative.java onPause and onResume
+
+The final two functions in this class are the onPause and onResume functions. As
+Android is a multitasking environment. Your application maybe interrupted by the OS at any time. So we need to
+define what happens to
+the application when the OS asks the application to pause and then what to do when it resumes. As our app is
+relatively simple there isn't much needed to be done. We just call the equivalent method in the super class in each case.
+
+\section firstNativeTheLibrary The Library
+
+The other Java file we need to create is the interface between the Java side of our application and the
+native C side. This file will load in the native library that holds all of our code and will also define
+the functions that will be found in the native library.
+
+\snippet tutorials/FirstNative/src/com/arm/malideveloper/openglessdk/firstnative/NativeLibrary.java NativeLibrary
+
+As with all of the Java files you need to add the package that this file will be part of. The first real
+line of note is the System.loadLibrary("Native") which loads our native library from the system. The only
+other part of
+this class is the function prototype of the function that can be found in the native library.
+
+\section firstNativeNativeCode Native Code
+
+Now that we have created the Android activity and the interface between the Java code and the native code
+it is time to write some the native portion of the code. As this is our first example this will be kept
+relatively simple but in future this will house all of our scene setup as well at functions that will actually render the
+scene.
+
+As with the previous tutorial we create all necessary files for native development by right clicking on our
+project in the project explorer. Select *Add Native Support* and then make sure the library name is called
+**Native** and
+click *Finish*. Now lets edit our Native.cpp file (in the jni folder in Eclipse).
+
+\snippet tutorials/FirstNative/jni/Native.cpp Includes
+
+As you can see things have gone well and truly into the C Programming language. We start off by including
+two files. The first is jni.h which allows C to know and use the Java interface. The second is the Android
+logging headers so we can include log statements like we did in the Java side. To make this easier to use we have included
+some \#defines.
+
+\snippet tutorials/FirstNative/jni/Native.cpp Function headers
+
+We now define the function prototypes for the functions referenced to in Java that we will define in this
+file. Note each function that is called from the Java side will include a JNIEnv parameter and a jobject
+parameter. For now we don't need to do anything with them. Just know that they must be included.
+
+\snippet tutorials/FirstNative/jni/Native.cpp Function definitions
+
+This is the only function we define and in typical "hello world" style, we just print a message.
+This is the only native side function we need to write at the moment.
+
+\section firstNativeBuildRun Building and Running the Application
+
+Follow the \ref gettingStartedGuide from \ref gettingStartedGuideBuildingTheSamples onwards to build and run the application.
+
+\section firstNativeNextSteps Next Steps
+
+Now move on to \ref introductionToShaders.
+*/

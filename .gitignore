@@ -1,0 +1,32 @@
+# Artifacts of compiling.
+/samples/*/*/bin
+/samples/*/*/gen
+/samples/*/*/libs
+/samples/*/*/obj
+/samples/*/*/local.properties
+/samples/*/*/proguard-project.txt
+/samples/*/*/build.xml
+
+# Artifacts of loading the samples into Eclipse
+/samples/*/*/.project
+/samples/*/*/.settings
+/samples/*/*/.classpath
+/samples/*/*/.cproject
+
+# Generated artifacts.
+/artifacts
+/out
+*.swp
+.idea/workspace.xml
+.idea/tasks.xml
+.externalNativeBuild
+build
+*.iml
+gradle
+gradlew
+gradlew.bat
+gradle-wrapper
+.idea
+.gradle
+local.properties
+docs/
