@@ -12,7 +12,7 @@ training, and exploration of implementation possibilities.
 
 To build and run the OpenGL ES sample applications you will need:
 -  An ARM based device with a Mali series GPU running Android.
--  [Android Studio](https://developer.android.com/studio/index.html").
+-  [Android Studio](https://developer.android.com/studio/index.html).
 -  The latest Android NDK, which should be downloaded automatically by Android Studio when you build the samples
     (alternatively, you can install it by following the instructions [here](https://developer.android.com/studio/projects/add-native-code.html#download-ndk)).
 
