@@ -1,3 +1,100 @@
+var NAVTREE =
+[
+  [ "OpenGL ES SDK for Android", "index.html", [
+    [ "About", "index.html#about", null ],
+    [ "Requirements", "index.html#requirements", null ],
+    [ "Getting Started", "index.html#gettingStarted", null ],
+    [ "Change Log", "index.html#changeLog", [
+      [ "Changes in version 2.1.2", "index.html#v212", null ],
+      [ "Changes in version 2.1.1", "index.html#v211", null ],
+      [ "Changes in version 2.1.0", "index.html#v210", null ],
+      [ "Changes in version 2.0.0", "index.html#v200", null ],
+      [ "Changes in version 1.9.0", "index.html#v190", null ],
+      [ "Changes in version 1.8.0", "index.html#v180", null ],
+      [ "Changes in version 1.7.0", "index.html#v170", null ],
+      [ "Changes in version 1.6.0", "index.html#v160", null ],
+      [ "Changes in version 1.5.0", "index.html#v150", null ],
+      [ "Changes in version 1.4.0", "index.html#v140", null ],
+      [ "Changes in version 1.3.0", "index.html#v130", null ],
+      [ "Changes in version 1.0.0", "index.html#v100", null ]
+    ] ],
+    [ "Contents", "index.html#contents", null ],
+    [ "Getting Started Guide", "getting_started_guide.html", [
+      [ "Introduction", "getting_started_guide.html#gettingStartedGuideIntroduction", null ],
+      [ "Getting the Appropriate Tools", "getting_started_guide.html#gettingStartedGuideGettingAppropriateTools", null ],
+      [ "Connecting your Device", "getting_started_guide.html#connecting", [
+        [ "Windows", "getting_started_guide.html#connectingWindows", null ],
+        [ "Linux", "getting_started_guide.html#connectingLinux", null ]
+      ] ],
+      [ "Building Android samples", "getting_started_guide.html#gettingStartedGuideBuildingTheSamples", null ],
+      [ "Next Steps", "getting_started_guide.html#gettingStartedGuideNextSteps", null ]
+    ] ],
+    [ "Legal", "legal.html", null ],
+    [ "Support", "support.html", [
+      [ "Local Help", "support.html#supportLocal", null ],
+      [ "Mali Developer Forums", "support.html#supportMaliDeveloper", null ]
+    ] ],
+    [ "Tutorials", "tutorials.html", "tutorials" ],
+    [ "Namespaces", null, [
+      [ "Namespace List", "namespaces.html", "namespaces" ],
+      [ "Namespace Members", "namespacemembers.html", [
+        [ "All", "namespacemembers.html", null ],
+        [ "Functions", "namespacemembers_func.html", null ],
+        [ "Variables", "namespacemembers_vars.html", null ],
+        [ "Typedefs", "namespacemembers_type.html", null ],
+        [ "Enumerations", "namespacemembers_enum.html", null ],
+        [ "Enumerator", "namespacemembers_eval.html", null ]
+      ] ]
+    ] ],
+    [ "Files", null, [
+      [ "File List", "files.html", "files" ],
+      [ "File Members", "globals.html", [
+        [ "All", "globals.html", "globals_dup" ],
+        [ "Functions", "globals_func.html", "globals_func" ],
+        [ "Variables", "globals_vars.html", "globals_vars" ],
+        [ "Typedefs", "globals_type.html", "globals_type" ],
+        [ "Enumerations", "globals_enum.html", null ],
+        [ "Enumerator", "globals_eval.html", null ],
+        [ "Macros", "globals_defs.html", "globals_defs" ]
+      ] ]
+    ] ]
+  ] ]
+];
+
+var NAVTREEINDEX =
+[
+"_a_a_b_b_8cpp.html",
+"_cube_8cpp.html#ac56b7ac5f7948f30c260ac2b2d072ae9",
+"_f_f_t_ocean_water_2jni_2vector__math_8h.html#a99ca5515ed160850c71b3ab93823fa77",
+"_multisampled_f_b_o_8cpp.html#a0e450f8f554764fb50c75197d16a7c9f",
+"_procedural_geometry_2jni_2stb__image_8h.html#ac205be2172292384dd687b5471a87eddaf5829d16d4cca6077465c5abd346e2f8",
+"_tessellation_2jni_2main_8cpp.html#adbf6247f1228290db52c3accedaf8a1b",
+"_translucency_2jni_2common_2glutil_8h.html#ac7887c985f176f48f4e895c6a8afd3c9",
+"advanced__samples_2_metaballs_2jni_2_timer_8h_source.html",
+"dir_15d67c5a22cb98bbc5705858969a9855.html",
+"dir_a20e0e415d6f9325cb78db8239286758.html",
+"gl2ext_8h.html#a028a257b95bc4ad8a0d431e71814c49f",
+"gl2ext_8h.html#a2a8e8e6a441b52ec4c518021d1cd259b",
+"gl2ext_8h.html#a582a82d8b36620cd96ba17320c5b7365",
+"gl2ext_8h.html#a7e0548e31a67349325353584ff33c681",
+"gl2ext_8h.html#aa9459b47e7388437191d2d9a69c10d98",
+"gl2ext_8h.html#ace352caa26f0da5c7375b1058871e42d",
+"gl2ext_8h.html#af7e354ac89879b250a474808ce8b54d9",
+"graphics_setup.html#graphicsSetupNativeLibrary",
+"min_max_blending.html#minMaxBlendingProgramObject",
+"ow_precision_2jni_2_astc_textures_8cpp.html#aa88c5b29b11317adcfa307c8870c41ce",
+"terrain.html#terrainVertexTextures",
+"tutorials_2_boids_2jni_2_native_8cpp.html#a6199c5c8f64654b5d0d82ac8e2517182",
+"tutorials_2_instanced_tessellation_2jni_2_native_8cpp.html#a0f81d01561af05fa1fe14a499d63d8c5",
+"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#adb4a3011dae48743d77e903eb92f0bba",
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a28ac2162a6ebbcb6207f117af77b641a",
+"tutorials_2_simple_cube_2jni_2_matrix_8cpp.html#a3536a1a157cf0d3fd3e9b137e1a03502"
+];
+
+var SYNCONMSG = 'click to disable panel synchronisation';
+var SYNCOFFMSG = 'click to enable panel synchronisation';
+var SYNCONMSG = 'click to disable panel synchronisation';
+var SYNCOFFMSG = 'click to enable panel synchronisation';
 var navTreeSubIndices = new Array();
 
 function getData(varName)
@@ -18,21 +115,6 @@ function stripPath2(uri)
   var s = uri.substring(i+1);
   var m = uri.substring(0,i+1).match(/\/d\w\/d\w\w\/$/);
   return m ? uri.substring(i-6) : s;
-}
-
-function hashValue()
-{
-  return $(location).attr('hash').substring(1).replace(/[^\w\-]/g,'');
-}
-
-function hashUrl()
-{
-  return '#'+hashValue();
-}
-
-function pathName()
-{
-  return $(location).attr('pathname').replace(/[^-A-Za-z0-9+&@#/%?=~_|!:,.;\(\)]/g, '');
 }
 
 function localStorageSupported()
@@ -57,7 +139,7 @@ function deleteLink()
 {
   if (localStorageSupported()) {
     window.localStorage.setItem('navpath','');
-  }
+  } 
 }
 
 function cachedLink()
@@ -105,7 +187,7 @@ function createIndent(o,domNode,node,level)
     node.expandToggle.onclick = function() {
       if (node.expanded) {
         $(node.getChildrenUL()).slideUp("fast");
-        node.plus_img.src = node.relpath+"arrowright.png";
+        node.plus_img.src = node.relpath+"ftv2pnode.png";
         node.expanded = false;
       } else {
         expandNode(o, node, false, false);
@@ -113,7 +195,7 @@ function createIndent(o,domNode,node,level)
     }
     node.expandToggle.appendChild(imgNode);
     domNode.appendChild(node.expandToggle);
-    imgNode.src = node.relpath+"arrowright.png";
+    imgNode.src = node.relpath+"ftv2pnode.png";
   } else {
     var span = document.createElement("span");
     span.style.display = 'inline-block';
@@ -129,13 +211,11 @@ var animationInProgress = false;
 function gotoAnchor(anchor,aname,updateLocation)
 {
   var pos, docContent = $('#doc-content');
-  var ancParent = $(anchor.parent());
-  if (ancParent.hasClass('memItemLeft') ||
-      ancParent.hasClass('fieldname') ||
-      ancParent.hasClass('fieldtype') ||
-      ancParent.is(':header'))
+  if (anchor.parent().attr('class')=='memItemLeft' ||
+      anchor.parent().attr('class')=='fieldtype' ||
+      anchor.parent().is(':header')) 
   {
-    pos = ancParent.position().top;
+    pos = anchor.parent().position().top;
   } else if (anchor.position()) {
     pos = anchor.position().top;
   }
@@ -193,7 +273,7 @@ function newNode(o, po, text, link, childrenData, lastNode)
     a.className = stripPath(link.replace('#',':'));
     if (link.indexOf('#')!=-1) {
       var aname = '#'+link.split('#')[1];
-      var srcPage = stripPath(pathName());
+      var srcPage = stripPath($(location).attr('pathname'));
       var targetPage = stripPath(link.split('#')[0]);
       a.href = srcPage!=targetPage ? url : "javascript:void(0)"; 
       a.onclick = function(){
@@ -269,9 +349,9 @@ function expandNode(o, node, imm, showRoot)
         $(node.getChildrenUL()).slideDown("fast");
       }
       if (node.isLast) {
-        node.plus_img.src = node.relpath+"arrowdown.png";
+        node.plus_img.src = node.relpath+"ftv2mlastnode.png";
       } else {
-        node.plus_img.src = node.relpath+"arrowdown.png";
+        node.plus_img.src = node.relpath+"ftv2mnode.png";
       }
       node.expanded = true;
     }
@@ -287,13 +367,14 @@ function glowEffect(n,duration)
 
 function highlightAnchor()
 {
-  var aname = hashUrl();
+  var aname = $(location).attr('hash');
   var anchor = $(aname);
   if (anchor.parent().attr('class')=='memItemLeft'){
-    var rows = $('.memberdecls tr[class$="'+hashValue()+'"]');
+    var rows = $('.memberdecls tr[class$="'+
+               window.location.hash.substring(1)+'"]');
     glowEffect(rows.children(),300); // member without details
-  } else if (anchor.parent().attr('class')=='fieldname'){
-    glowEffect(anchor.parent().parent(),1000); // enum value
+  } else if (anchor.parents().slice(2).prop('tagName')=='TR') {
+    glowEffect(anchor.parents('div.memitem'),1000); // enum value
   } else if (anchor.parent().attr('class')=='fieldtype'){
     glowEffect(anchor.parent().parent(),1000); // struct field
   } else if (anchor.parent().is(":header")) {
@@ -308,7 +389,7 @@ function selectAndHighlight(hash,n)
 {
   var a;
   if (hash) {
-    var link=stripPath(pathName())+':'+hash.substring(1);
+    var link=stripPath($(location).attr('pathname'))+':'+hash.substring(1);
     a=$('.item a[class$="'+link+'"]');
   }
   if (a && a.length) {
@@ -341,7 +422,11 @@ function showNode(o, node, index, hash)
         getNode(o, node);
       }
       $(node.getChildrenUL()).css({'display':'block'});
-      node.plus_img.src = node.relpath+"arrowdown.png";
+      if (node.isLast) {
+        node.plus_img.src = node.relpath+"ftv2mlastnode.png";
+      } else {
+        node.plus_img.src = node.relpath+"ftv2mnode.png";
+      }
       node.expanded = true;
       var n = node.children[o.breadcrumbs[index]];
       if (index+1<o.breadcrumbs.length) {
@@ -415,13 +500,14 @@ function navTo(o,root,hash,relpath)
   if (link) {
     var parts = link.split('#');
     root = parts[0];
-    if (parts.length>1) hash = '#'+parts[1].replace(/[^\w\-]/g,'');
+    if (parts.length>1) hash = '#'+parts[1];
     else hash='';
   }
   if (hash.match(/^#l\d+$/)) {
     var anchor=$('a[name='+hash.substring(1)+']');
     glowEffect(anchor.parent(),1000); // line number
     hash=''; // strip line number anchors
+    //root=root.replace(/_source\./,'.'); // source link to doc link
   }
   var url=root+hash;
   var i=-1;
@@ -455,7 +541,7 @@ function toggleSyncButton(relpath)
   if (navSync.hasClass('sync')) {
     navSync.removeClass('sync');
     showSyncOff(navSync,relpath);
-    storeLink(stripPath2(pathName())+hashUrl());
+    storeLink(stripPath2($(location).attr('pathname'))+$(location).attr('hash'));
   } else {
     navSync.addClass('sync');
     showSyncOn(navSync,relpath);
@@ -479,7 +565,7 @@ function initNavTree(toroot,relpath)
   o.node.expanded = false;
   o.node.isLast = true;
   o.node.plus_img = document.createElement("img");
-  o.node.plus_img.src = relpath+"arrowright.png";
+  o.node.plus_img.src = relpath+"ftv2pnode.png";
   o.node.plus_img.width = 16;
   o.node.plus_img.height = 22;
 
@@ -495,7 +581,7 @@ function initNavTree(toroot,relpath)
   }
 
   $(window).load(function(){
-    navTo(o,toroot,hashUrl(),relpath);
+    navTo(o,toroot,window.location.hash,relpath);
     showRoot();
   });
 
@@ -503,20 +589,21 @@ function initNavTree(toroot,relpath)
      if (window.location.hash && window.location.hash.length>1){
        var a;
        if ($(location).attr('hash')){
-         var clslink=stripPath(pathName())+':'+hashValue();
-         a=$('.item a[class$="'+clslink.replace(/</g,'\\3c ')+'"]');
+         var clslink=stripPath($(location).attr('pathname'))+':'+
+                               $(location).attr('hash').substring(1);
+         a=$('.item a[class$="'+clslink+'"]');
        }
        if (a==null || !$(a).parent().parent().hasClass('selected')){
          $('.item').removeClass('selected');
          $('.item').removeAttr('id');
        }
-       var link=stripPath2(pathName());
-       navTo(o,link,hashUrl(),relpath);
+       var link=stripPath2($(location).attr('pathname'));
+       navTo(o,link,$(location).attr('hash'),relpath);
      } else if (!animationInProgress) {
        $('#doc-content').scrollTop(0);
        $('.item').removeClass('selected');
        $('.item').removeAttr('id');
-       navTo(o,toroot,hashUrl(),relpath);
+       navTo(o,toroot,window.location.hash,relpath);
      }
   })
 }

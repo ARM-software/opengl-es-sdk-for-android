@@ -1388,7 +1388,7 @@ var gl2ext_8h =
     [ "format", "gl2ext_8h.html#a71a65ffd977afe9c3fef116a5bc9ee27", null ],
     [ "g", "gl2ext_8h.html#a9cd653b1648845554169fbc3a3f6d37a", null ],
     [ "genMode", "gl2ext_8h.html#a9e3a23bc2aaab1d91ae48ef605e92417", null ],
-    [ "GLDEBUGPROCKHR", "gl2ext_8h.html#abbc172b508312ae23fed317e7e2dddb0", null ],
+    [ "GLDEBUGPROCKHR", "gl2ext_8h.html#a4493bc4e887d317abb57ccdef4c2a342", null ],
     [ "GLeglImageOES", "gl2ext_8h.html#af257f88d4c552c56f0e0eaae7f3bcf70", null ],
     [ "group", "gl2ext_8h.html#a907548ce3e5521fd5399f50e8df298bf", null ],
     [ "groups", "gl2ext_8h.html#a29e75d4d220299193642375d018e1e0d", null ],

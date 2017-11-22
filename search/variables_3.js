@@ -1,7 +1,7 @@
 var searchData=
 [
   ['data',['data',['../structvec2.html#a7bb6aba63933320eff066133eba98ec6',1,'vec2::data()'],['../structdetail_1_1ivec2.html#a9e06d3e44099eb89cbaa587d91f3b765',1,'detail::ivec2::data()'],['../structvec3.html#a0dfb233526b0a0fc720cc1892cb013d7',1,'vec3::data()'],['../structvec4.html#ae40016fa97400690251b4438d7f89a67',1,'vec4::data()'],['../structmat4.html#a854fcde078ed9167b9228bf679b92d07',1,'mat4::data()'],['../structuvec2.html#a571ff93c9cffbfd4cb304c1b41bf3670',1,'uvec2::data()']]],
-  ['daytime_5ftexture_5flocation',['daytime_texture_location',['../_astc_textures_8cpp.html#af3eb68382ef5796e0873e26c255f3801',1,'AstcTextures.cpp']]],
+  ['daytime_5ftexture_5flocation',['daytime_texture_location',['../jni_2_astc_textures_8cpp.html#af3eb68382ef5796e0873e26c255f3801',1,'daytime_texture_location():&#160;AstcTextures.cpp'],['../ow_precision_2jni_2_astc_textures_8cpp.html#af3eb68382ef5796e0873e26c255f3801',1,'daytime_texture_location():&#160;AstcTextures.cpp']]],
   ['decodeapisupportstrings',['decodeAPISupportStrings',['../_list_e_g_l_configs_8cpp.html#a404b24178929b5bd28d5236ec9761119',1,'ListEGLConfigs.cpp']]],
   ['decodesurfacestrings',['decodeSurfaceStrings',['../_list_e_g_l_configs_8cpp.html#ab80d60e12242b364a8cef90b26adefad',1,'ListEGLConfigs.cpp']]],
   ['degenerate_5fbottom',['degenerate_bottom',['../class_ground_mesh.html#a11bb2bbbf260e526f42080a4dc476826',1,'GroundMesh']]],

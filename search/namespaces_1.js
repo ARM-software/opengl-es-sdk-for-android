@@ -4,6 +4,7 @@ var searchData=
   ['arm',['arm',['../namespacecom_1_1arm.html',1,'com']]],
   ['assetloading',['assetloading',['../namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1assetloading.html',1,'com::arm::malideveloper::openglessdk']]],
   ['astctextures',['astctextures',['../namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1astctextures.html',1,'com::arm::malideveloper::openglessdk']]],
+  ['astctextureslowprecision',['astctextureslowprecision',['../namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1astctextureslowprecision.html',1,'com::arm::malideveloper::openglessdk']]],
   ['bloom',['bloom',['../namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1bloom.html',1,'com::arm::malideveloper::openglessdk']]],
   ['boids',['boids',['../namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1boids.html',1,'com::arm::malideveloper::openglessdk']]],
   ['com',['com',['../namespacecom.html',1,'']]],

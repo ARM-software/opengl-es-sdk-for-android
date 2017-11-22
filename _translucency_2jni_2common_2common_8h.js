@@ -1,6 +1,6 @@
 var _translucency_2jni_2common_2common_8h =
 [
-    [ "ASSERT", "_translucency_2jni_2common_2common_8h.html#a9a90e23f0f81ce2fdf8c10979e6917fb", null ],
+    [ "ASSERT", "_translucency_2jni_2common_2common_8h.html#adc1cb77a482c9dbdce3ec9a2d1aea04c", null ],
     [ "LOG_TAG", "_translucency_2jni_2common_2common_8h.html#a7ce0df38eb467e59f209470c8f5ac4e6", null ],
     [ "LOGD", "_translucency_2jni_2common_2common_8h.html#aa839997a58e14061861cd634fdb7664d", null ],
     [ "LOGE", "_translucency_2jni_2common_2common_8h.html#ae02538a80ad5fc009caec73487d11a8d", null ],

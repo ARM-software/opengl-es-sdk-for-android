@@ -1,7 +1,7 @@
 var tutorials_2_foveated_rendering_2jni_2_native_8cpp =
 [
     [ "FOVEATED", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a89937592cb4dad7f49254e00c3fc977b", null ],
-    [ "GL_CHECK", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a65b2a1f645f0daadb85a3500bce1704f", null ],
+    [ "GL_CHECK", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a5d9574303c254cdd7639476d1cec8f36", null ],
     [ "GL_TEXTURE_2D_MULTISAMPLE_ARRAY", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a95e79008f5d1b6305384c38e42ec5c16", null ],
     [ "LOG_TAG", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a7ce0df38eb467e59f209470c8f5ac4e6", null ],
     [ "LOGE", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#ae02538a80ad5fc009caec73487d11a8d", null ],
@@ -10,10 +10,10 @@ var tutorials_2_foveated_rendering_2jni_2_native_8cpp =
     [ "RATIO", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a7e8b3c8482e593df0ace933ad3de22ee", null ],
     [ "RED", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a8d23feea868a983c8c2b661e1e16972f", null ],
     [ "VIEWS", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a4732dee4075bf36e768eacde4ea2f447", null ],
-    [ "PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXT", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a348acbf7f53c7a9efe7141bf6751d521", null ],
-    [ "PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVR", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a3a4ac4ba58e1cd91bd79b4070a8b072e", null ],
-    [ "PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVR", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a3d5226b174d07f399af070c36bca988e", null ],
-    [ "PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXT", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a7a4f0c87ba2eb8db27cc2dd8248cdac2", null ],
+    [ "PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXT", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a885fb9ff0dbba22a8f4c2f2b81ef2bc3", null ],
+    [ "PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVR", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a0c910298f4c5584c8cf63f8d8fa296d5", null ],
+    [ "PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVR", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#af0cc1fab6ab2ec8fe1bfdcbbaea6d196", null ],
+    [ "PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXT", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a7a949b78e28055d014a9094350d6e161", null ],
     [ "createProgram", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#a1a7d059e2b6785c5d98ee7deff7c5c76", null ],
     [ "createTexture", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#aa4c5d7badab0a372d1e9267b086f9d52", null ],
     [ "generateDepthCircleVBO", "tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#af2a31c1f3a3a5d388ec9281d85a085b1", null ],
