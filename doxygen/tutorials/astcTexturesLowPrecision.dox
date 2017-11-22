@@ -1,0 +1,44 @@
+/**
+\page astcTexturesLowPrecision ASTC low precision
+\brief This document describes how to enable and use the ASTC decode mode extension to select decoding precision when decoding ASTC image blocks.
+
+\section astcTexturesLowPrecisionIntroduction Introduction
+This tutorial shows how the EXT_texture_compression_astc_decode_mode extension can be used to enable different levels of decoding precision. For more information about how ASTC is used, please see \ref astcTextures.
+
+\warning
+In order to use the ASTC decode mode extension you need to run the application on hardware which supports corresponding OpenGL ES extension(s):
+ + GL_EXT_texture_compression_astc_decode_mode and optionally
+ + GL_EXT_texture_compression_astc_decode_mode_rgb9e5.
+
+\section astcTexturesLowPrecisionRationale Rationale
+The existing specifications require that low dynamic range (LDR) textures are decompressed to FP16 values per component. In many cases, decompressing LDR textures to a lower precision intermediate result gives acceptable image quality. Source material for LDR textures is typically authored as 8-bit UNORM values, so decoding to FP16 values adds little value. On the other hand, reducing precision of the decoded result reduces the size of the decompressed data, potentially improving texture cache performance and saving power.
+
+The goal of this extension is to enable this efficiency gain on existing ASTC texture data. This is achieved by giving the application the ability to select the decoding precision.
+
+Two decoding options are provided by GL_EXT_texture_compression_astc_decode_mode
+ + Decode to FP16: This is the default, and matches the required behavior in existing APIs.
+ + Decode to UNORM8: This is provided as an option in LDR mode.
+
+If GL_EXT_texture_compression_astc_decode_mode_rgb9e5 is supported, then a third decoding option is provided:
+ + Decode to RGB9_E5: This is provided as an option in both LDR and HDR mode. In this mode, negative values cannot be represented and are clamped to zero. The alpha component is ignored, and the results are as if alpha was 1.0.
+
+\section astcTexturesLowPrecisionHow How to use the extension
+Decode mode is set using the a texture parameter set using the glTexParameter* functions.
+\code
+glBindTexture(GL_TEXTURE_2D, your_astc_texture);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_ASTC_DECODE_PRECISION_EXT, GL_RGBA8);
+\endcode
+
+Supported decode modes:
+ + GL_RGBA16F (default decode mode)
+ + GL_RGBA8
+ + GL_RGB5_E9 (requires the GL_EXT_texture_compression_astc_decode_mode_rgb9e5 extension).
+
+\section astcTexturesLowPrecisionReferences References
+
+<a name="ref1">[1]</a> https://www.khronos.org/registry/gles/extensions/KHR/texture_compression_astc_hdr.txt
+
+<a name="ref2">[2]</a> https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_compression_astc_decode_mode.txt
+
+<a name="ref3">[3]</a> http://malideveloper.arm.com/develop-for-mali/tools/astc-evaluation-codec/
+*/
