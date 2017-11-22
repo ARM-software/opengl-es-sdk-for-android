@@ -6,6 +6,7 @@ include ':samples:advanced_samples:common_java'
 
 include ':samples:advanced_samples:AntiAlias'
 include ':samples:advanced_samples:AstcTextures'
+include ':samples:advanced_samples:AstcTexturesLowPrecision'
 include ':samples:advanced_samples:ComputeParticles'
 include ':samples:advanced_samples:Cube'
 include ':samples:advanced_samples:EGLPreserve'

@@ -129,6 +129,9 @@ folder of the SDK.
  -  \subpage astcTextures
 
     \copybrief astcTextures
+ -  \subpage astcTexturesLowPrecision
+
+    \copybrief astcTexturesLowPrecision
  -  \subpage computeIntro
 
     \copybrief computeIntro

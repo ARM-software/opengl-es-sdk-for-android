@@ -1,6 +1,7 @@
 add_subdirectory(common_native)
 add_subdirectory(AntiAlias)
 add_subdirectory(AstcTextures)
+add_subdirectory(AstcTexturesLowPrecision)
 add_subdirectory(ComputeParticles)
 add_subdirectory(Cube)
 add_subdirectory(EGLPreserve)
