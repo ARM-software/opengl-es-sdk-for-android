@@ -6,5 +6,6 @@ var searchData=
   ['app',['App',['../struct_app.html',1,'']]],
   ['assetloading',['AssetLoading',['../classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1assetloading_1_1_asset_loading.html',1,'com::arm::malideveloper::openglessdk::assetloading']]],
   ['astc_5fheader',['astc_header',['../structastc__header.html',1,'']]],
-  ['astctextures',['AstcTextures',['../classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1astctextures_1_1_astc_textures.html',1,'com::arm::malideveloper::openglessdk::astctextures']]]
+  ['astctextures',['AstcTextures',['../classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1astctextures_1_1_astc_textures.html',1,'com::arm::malideveloper::openglessdk::astctextures']]],
+  ['astctextureslowprecision',['AstcTexturesLowPrecision',['../classcom_1_1arm_1_1malideveloper_1_1openglessdk_1_1astctextureslowprecision_1_1_astc_textures_low_precision.html',1,'com::arm::malideveloper::openglessdk::astctextureslowprecision']]]
 ];

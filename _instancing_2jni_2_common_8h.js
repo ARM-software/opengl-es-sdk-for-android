@@ -1,7 +1,7 @@
 var _instancing_2jni_2_common_8h =
 [
-    [ "ASSERT", "_instancing_2jni_2_common_8h.html#a9a90e23f0f81ce2fdf8c10979e6917fb", null ],
-    [ "GL_CHECK", "_instancing_2jni_2_common_8h.html#a65b2a1f645f0daadb85a3500bce1704f", null ],
+    [ "ASSERT", "_instancing_2jni_2_common_8h.html#adc1cb77a482c9dbdce3ec9a2d1aea04c", null ],
+    [ "GL_CHECK", "_instancing_2jni_2_common_8h.html#a5d9574303c254cdd7639476d1cec8f36", null ],
     [ "LOG_TAG", "_instancing_2jni_2_common_8h.html#a7ce0df38eb467e59f209470c8f5ac4e6", null ],
     [ "LOGD", "_instancing_2jni_2_common_8h.html#aa839997a58e14061861cd634fdb7664d", null ],
     [ "LOGE", "_instancing_2jni_2_common_8h.html#ae02538a80ad5fc009caec73487d11a8d", null ],

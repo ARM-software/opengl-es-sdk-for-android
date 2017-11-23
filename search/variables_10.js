@@ -29,7 +29,7 @@ var searchData=
   ['room',['room',['../tutorials_2_foveated_rendering_2jni_2_native_8cpp.html#ab46e1ea9b0bbc5a702004cea8211dbbc',1,'Native.cpp']]],
   ['rot_5fx',['rot_x',['../_translucency_2jni_2app_8cpp.html#a46971b5c2131b43ae2e4f9f01c335f20',1,'app.cpp']]],
   ['rot_5fy',['rot_y',['../_translucency_2jni_2app_8cpp.html#a5a07bc0091844204b6d4b9d14e83788e',1,'app.cpp']]],
-  ['rotate_5fmatrix',['rotate_matrix',['../_astc_textures_8cpp.html#ab2652557a076bfefd4d6ca534cf78d17',1,'AstcTextures.cpp']]],
+  ['rotate_5fmatrix',['rotate_matrix',['../jni_2_astc_textures_8cpp.html#ab2652557a076bfefd4d6ca534cf78d17',1,'rotate_matrix():&#160;AstcTextures.cpp'],['../ow_precision_2jni_2_astc_textures_8cpp.html#ab2652557a076bfefd4d6ca534cf78d17',1,'rotate_matrix():&#160;AstcTextures.cpp']]],
   ['rotate_5fx',['rotate_x',['../struct_app.html#aa05b83a2534a24cc455d1d9fe1786b95',1,'App']]],
   ['rotate_5fy',['rotate_y',['../struct_app.html#a7c50d36854134aef909b663e2d03b141',1,'App']]],
   ['rotatedviewmatrix',['rotatedViewMatrix',['../tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#ade88ac0d4fca89474d0c36e0c2f960c9',1,'Native.cpp']]],

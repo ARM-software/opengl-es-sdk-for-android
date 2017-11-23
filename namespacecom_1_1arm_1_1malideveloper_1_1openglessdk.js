@@ -3,6 +3,7 @@ var namespacecom_1_1arm_1_1malideveloper_1_1openglessdk =
     [ "antialias", "namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1antialias.html", null ],
     [ "assetloading", "namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1assetloading.html", null ],
     [ "astctextures", "namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1astctextures.html", null ],
+    [ "astctextureslowprecision", "namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1astctextureslowprecision.html", null ],
     [ "bloom", "namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1bloom.html", null ],
     [ "boids", "namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1boids.html", null ],
     [ "computeparticles", "namespacecom_1_1arm_1_1malideveloper_1_1openglessdk_1_1computeparticles.html", null ],

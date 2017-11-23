@@ -8,7 +8,7 @@ var geometry_8h =
     [ "get_uniform_location", "geometry_8h.html#a20fafe7a3f773b1a5985dfd3e3616e3b", null ],
     [ "uniform1f", "geometry_8h.html#a3cb87b2f8af169f05b5b13923b830aad", null ],
     [ "uniform1i", "geometry_8h.html#a89218af745140568a10c78f65a9fc0e8", null ],
-    [ "uniform2f", "geometry_8h.html#acd1603d178a63c772b41c705bc9a3a75", null ],
+    [ "uniform2f", "geometry_8h.html#a79c3bbe40a100cdbc8784251cee631d6", null ],
     [ "uniform3fv", "geometry_8h.html#ae4e5d4af8f321c34efcecd05d36f7c35", null ],
     [ "uniformm4", "geometry_8h.html#a7449407b137b943ce4128624377a6da3", null ],
     [ "app_initialize", "geometry_8h.html#acdcc02461c5ee6a8f3e38426db4f6757", null ],
