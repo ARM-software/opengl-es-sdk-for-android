@@ -81,14 +81,14 @@ var NAVTREEINDEX =
 "gl2ext_8h.html#ace352caa26f0da5c7375b1058871e42d",
 "gl2ext_8h.html#af7e354ac89879b250a474808ce8b54d9",
 "graphics_setup.html#graphicsSetupNativeLibrary",
-"min_max_blending.html#minMaxBlendingProgramObject",
-"ow_precision_2jni_2_astc_textures_8cpp.html#aa88c5b29b11317adcfa307c8870c41ce",
-"terrain.html#terrainVertexTextures",
-"tutorials_2_boids_2jni_2_native_8cpp.html#a6199c5c8f64654b5d0d82ac8e2517182",
-"tutorials_2_instanced_tessellation_2jni_2_native_8cpp.html#a0f81d01561af05fa1fe14a499d63d8c5",
-"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#adb4a3011dae48743d77e903eb92f0bba",
-"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a28ac2162a6ebbcb6207f117af77b641a",
-"tutorials_2_simple_cube_2jni_2_matrix_8cpp.html#a3536a1a157cf0d3fd3e9b137e1a03502"
+"mipmapping_compressed.html#mipmappingCompressedNewTexture",
+"ow_precision_2jni_2_astc_textures_8cpp.html#ac97430dc005f065ac234be1f8ad0dcad",
+"tessellation.html#tessellationMipmapSelection",
+"tutorials_2_boids_2jni_2_native_8cpp.html#aa013d331ba0a6b237a2bda27a4463586",
+"tutorials_2_instanced_tessellation_2jni_2_native_8cpp.html#ae2549e1c01cb60d60c719a12284efa6a",
+"tutorials_2_min_max_blending_2jni_2_native_8cpp_source.html",
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a48018b704c428606d328a8e3b7cc2216",
+"tutorials_2_simple_cube_2jni_2_matrix_8h.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

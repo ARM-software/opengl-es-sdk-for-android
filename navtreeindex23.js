@@ -1,14 +1,5 @@
 var NAVTREEINDEX23 =
 {
-"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#adb4a3011dae48743d77e903eb92f0bba":[10,0,0,1,12,0,3,9],
-"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#adcd15660c3b7410fbc2a24d47bbbf925":[10,0,0,1,12,0,3,25],
-"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#ae23e43cfba25265d5a320d61d4ba8902":[10,0,0,1,12,0,3,12],
-"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#ae32220ca68ebf4635b27644a42789510":[10,0,0,1,12,0,3,3],
-"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#ae6e55e16c79206e9d4eedc8e46990338":[10,0,0,1,12,0,3,11],
-"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#ae9a435d62170d940fb34cd31cd4db897":[10,0,0,1,12,0,3,7],
-"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#af140802328ffe8a45749114b1c5a2056":[10,0,0,1,12,0,3,36],
-"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#afa90a5c5c3718da584a64351bf5a8876":[10,0,0,1,12,0,3,14],
-"tutorials_2_min_max_blending_2jni_2_native_8cpp.html#afec496dfe19ccd51a40912e6f8e5b436":[10,0,0,1,12,0,3,32],
 "tutorials_2_min_max_blending_2jni_2_native_8cpp_source.html":[10,0,0,1,12,0,3],
 "tutorials_2_min_max_blending_2jni_2_shader_8cpp.html":[10,0,0,1,12,0,5],
 "tutorials_2_min_max_blending_2jni_2_shader_8cpp_source.html":[10,0,0,1,12,0,5],
@@ -249,5 +240,14 @@ var NAVTREEINDEX23 =
 "tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a1dd0a04c8886f705ba566b86f14fa54b":[10,0,0,1,16,0,5,31],
 "tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a2013c0619ecd174e3f790001a8cbff38":[10,0,0,1,16,0,5,29],
 "tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a212721b11ccdabe223795a55de3d9898":[10,0,0,1,16,0,5,22],
-"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a247dd95a0a87ef7e43a724b77791e416":[10,0,0,1,16,0,5,49]
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a247dd95a0a87ef7e43a724b77791e416":[10,0,0,1,16,0,5,49],
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a28ac2162a6ebbcb6207f117af77b641a":[10,0,0,1,16,0,5,11],
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a2ac001cdc4f3e1eb5896baa20e401cc5":[10,0,0,1,16,0,5,43],
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a2b70e03841e579a1e75bfa0cccf59fc3":[10,0,0,1,16,0,5,38],
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a2be46613a8363fc236490903444212af":[10,0,0,1,16,0,5,23],
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a308deba5c04da6a13f1d2b36815d20a7":[10,0,0,1,16,0,5,40],
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a3197f898ee4cefcb497079412333f2f1":[10,0,0,1,16,0,5,34],
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a3ddcdd4f661f7555ac9e167b1e4cd49f":[10,0,0,1,16,0,5,41],
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a40b2c256854b52b3248d063c58d22880":[10,0,0,1,16,0,5,55],
+"tutorials_2_occlusion_queries_2jni_2_native_8cpp.html#a40f21880bfa32eac92ee5cc4873898ef":[10,0,0,1,16,0,5,65]
 };

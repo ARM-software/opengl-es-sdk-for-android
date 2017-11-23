@@ -157,16 +157,6 @@ var tutorials =
       [ "Blending", "bloom.html#bloomBlending", null ],
       [ "Code Details", "bloom.html#bloomCodeDetails", null ]
     ] ],
-    [ "Metaballs", "metaballs.html", [
-      [ "Abstract", "metaballs.html#metaballsAbstract", null ],
-      [ "Introduction", "metaballs.html#metaballsIntroduction", null ],
-      [ "Stages", "metaballs.html#metaballsStages", null ],
-      [ "Calculation of sphere positions", "metaballs.html#metaballsStage1", null ],
-      [ "Scalar field generation", "metaballs.html#metaballsStage2", null ],
-      [ "Marching Cubes cell-splitting", "metaballs.html#metaballsStage3", null ],
-      [ "Marching Cubes triangle generation and rendering", "metaballs.html#metaballsStage4", null ],
-      [ "References", "metaballs.html#metaballsReferences", null ]
-    ] ],
     [ "Min Max Blending", "min_max_blending.html", [
       [ "Introduction", "min_max_blending.html#minMaxBlendingIntroduction", null ],
       [ "Overview", "min_max_blending.html#minMaxBlendingOverview", null ],
