@@ -62,9 +62,6 @@ Summary of changes between versions of the OpenGL ES SDK for Android.
  -# \subpage bloom
 
     \copybrief bloom
- -# \subpage metaballs
-
-    \copybrief metaballs
  -# \subpage minMaxBlending
 
     \copybrief minMaxBlending
