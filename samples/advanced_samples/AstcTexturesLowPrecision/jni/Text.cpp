@@ -23,6 +23,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <string>
 
 namespace AstcTextures
 { 
