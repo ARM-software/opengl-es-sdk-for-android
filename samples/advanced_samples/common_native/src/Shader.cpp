@@ -94,7 +94,7 @@ namespace MaliSDK
         size_t numberOfBytesRead = fread(shader, sizeof(char), length, file);
         if (numberOfBytesRead != length) 
         {
-            LOGE("Error reading %s (read %d of %ld)", filename, numberOfBytesRead, length);
+            LOGE("Error reading %s (read %zu of %ld)", filename, numberOfBytesRead, length);
             exit(1);
         }
         shader[length] = '\0';
