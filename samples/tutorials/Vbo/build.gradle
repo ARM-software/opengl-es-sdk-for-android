@@ -5,11 +5,11 @@ def sample = new File(parent).getName()
 println sample
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 33
 
     defaultConfig {
         minSdkVersion 9
-         targetSdkVersion 29
+         targetSdkVersion 33
 
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a'
