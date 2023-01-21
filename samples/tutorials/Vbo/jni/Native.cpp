@@ -291,19 +291,19 @@ static void renderFrame()
 extern "C"
 {
     JNIEXPORT void JNICALL Java_com_arm_malideveloper_openglessdk_vbo_NativeLibrary_init(
-            JNIEnv * env, jobject obj, jint width, jint height);
+            JNIEnv * env, jclass obj, jint width, jint height);
     JNIEXPORT void JNICALL Java_com_arm_malideveloper_openglessdk_vbo_NativeLibrary_step(
-            JNIEnv * env, jobject obj);
+            JNIEnv * env, jclass obj);
 };
 
-JNIEXPORT void JNICALL Java_com_arm_malideveloper_openglessdk_vbo_NativeLibrary_init(
-        JNIEnv * env, jobject obj, jint width, jint height)
+extern "C" JNIEXPORT void JNICALL Java_com_arm_malideveloper_openglessdk_vbo_NativeLibrary_init(
+        JNIEnv * env, jclass obj, jint width, jint height)
 {
     setupGraphics(width, height);
 }
 
-JNIEXPORT void JNICALL Java_com_arm_malideveloper_openglessdk_vbo_NativeLibrary_step(
-        JNIEnv * env, jobject obj)
+extern "C" JNIEXPORT void JNICALL Java_com_arm_malideveloper_openglessdk_vbo_NativeLibrary_step(
+        JNIEnv * env, jclass obj)
 {
     renderFrame();
 }
