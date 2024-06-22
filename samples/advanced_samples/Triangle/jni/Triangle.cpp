@@ -24,7 +24,7 @@
  *
  * Uses a simple shader to fill the the triangle with a gradient color.
  */
-
+#define STB_IMAGE_IMPLEMENTATION
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
  
@@ -40,22 +40,51 @@
 #include "Text.h"
 #include "Shader.h"
 #include "Timer.h"
+#include <stb_image.h>
 
 using std::string;
 using namespace MaliSDK;
 
 /* Asset directories and filenames. */
 string resourceDirectory = "/data/data/com.arm.malideveloper.openglessdk.triangle/";
-string vertexShaderFilename = "Triangle_triangle.vert";
-string fragmentShaderFilename = "Triangle_triangle.frag";
+
+//#define CUBIC
+#ifdef CUBIC
+string vertexShaderFilename = "cubic.vert";
+string fragmentShaderFilename = "cubic.frag";
+#else
+string vertexShaderFilename = "gsr.vert";
+string fragmentShaderFilename = "gsr.frag";
+#endif
+
+const GLfloat gTriangleVertices[] = {
+        -1.0f, 1.0f,
+        -1.0f, -1.0f,
+        1.0f, -1.0f,
+        1.0f, 1.0f,
+};
+
+const GLfloat gTriangleTexcoords[] = {
+        0.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+};
 
 /* Shader variables. */
 GLuint programID;
-GLint iLocPosition = -1;
-GLint iLocFillColor = -1;
 
+GLint gvPositionHandle;
+GLint gTexSamplerHandle;
+GLint gvTexcoordHandle;
+GLuint gTex;
+
+#ifdef CUBIC
+int gUid, gVid;
+int gTexWidth, gTexHeight;
+#endif
 /* A text object to draw text on the screen. */ 
-Text *text;
+//Text *text;
 
 bool setupGraphics(int width, int height)
 {
@@ -78,8 +107,8 @@ bool setupGraphics(int width, int height)
     GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
     /* Initialize the Text object and add some text. */
-    text = new Text(resourceDirectory.c_str(), width, height);
-    text->addString(0, 0, "Simple triangle", 255, 255, 0, 255);
+    //text = new Text(resourceDirectory.c_str(), width, height);
+    //text->addString(0, 0, "Simple triangle", 255, 255, 0, 255);
 
     /* Process shaders. */
     Shader::processShader(&vertexShaderID, vertexShaderPath.c_str(), GL_VERTEX_SHADER);
@@ -99,44 +128,74 @@ bool setupGraphics(int width, int height)
     GL_CHECK(glLinkProgram(programID));
     GL_CHECK(glUseProgram(programID));
 
-    /* Positions. */
-    GL_CHECK(iLocPosition = glGetAttribLocation(programID, "a_v4Position"));
-    LOGD("glGetAttribLocation(\"a_v4Position\") = %d\n", iLocPosition);
+    gvPositionHandle = glGetAttribLocation(programID, "aPos");
+    LOGE("glGetAttribLocation(\"aPos\") = %d\n",
+            gvPositionHandle);
+    gvTexcoordHandle = glGetAttribLocation(programID, "aTexcoord");
+    LOGE("glGetAttribLocation(\"aTexcoord\") = %d\n",
+            gvTexcoordHandle);
+    gTexSamplerHandle = glGetUniformLocation(programID, "u_InputTexture");
+    LOGE("glGetUniformLocation(\"gTexSampler\") = %d\n",
+            gTexSamplerHandle);
+#ifdef CUBIC
+    gUid = glGetUniformLocation(programID, "uUnit");
+    gVid = glGetUniformLocation(programID, "vUnit");
+#endif
+    glGenTextures(1, &gTex);
+    glBindTexture(GL_TEXTURE_2D, gTex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    /* Fill colors. */
-    GL_CHECK(iLocFillColor = glGetAttribLocation(programID, "a_v4FillColor"));
-    LOGD("glGetAttribLocation(\"a_v4FillColor\") = %d\n", iLocFillColor);
+    int tex_width, tex_height, nrChannels;
+    stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+    std::string tex_path = resourceDirectory + "font.png";//"onepiece_medium.png";
+    unsigned char *data = stbi_load(tex_path.c_str(), &tex_width, &tex_height, &nrChannels, 0);
 
-    GL_CHECK(glViewport(0, 0, width, height));
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        //glGenerateMipmap(GL_TEXTURE_2D);
+        LOGE("load texture %d x %d \n", tex_width, tex_height);
+    }
+    else
+    {
+        LOGE("Failed to load texture\n");
+    }
+#ifdef CUBIC
+    gTexWidth = tex_width;
+    gTexHeight = tex_height;
+#endif
+    stbi_image_free(data);
 
-    /* Set clear screen color. */
-    GL_CHECK(glClearColor(0.0f, 0.0f, 1.0f, 1.0f));
-    GL_CHECK(glClearDepthf(1.0f));
+    glViewport(0, 0, width, height);
     return true;
 }
 
 void renderFrame(void)
 {
+    LOGI("begin...");
     GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-
     GL_CHECK(glUseProgram(programID));
-
-    /* Pass the triangle vertex positions to the shader */
-    GL_CHECK(glVertexAttribPointer(iLocPosition, 3, GL_FLOAT, GL_FALSE, 0, triangleVertices));
-
-    GL_CHECK(glEnableVertexAttribArray(iLocPosition));
-
-    if(iLocFillColor != -1)
-    {
-        /* Pass the vertex colours to the shader */
-        GL_CHECK(glVertexAttribPointer(iLocFillColor, 4, GL_FLOAT, GL_FALSE, 0, triangleColors));
-        GL_CHECK(glEnableVertexAttribArray(iLocFillColor));
-    }
-
-    GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 3));
-
+    glVertexAttribPointer(gvPositionHandle, 2, GL_FLOAT, GL_FALSE, 0, gTriangleVertices);
+    glEnableVertexAttribArray(gvPositionHandle);
+    glVertexAttribPointer(gvTexcoordHandle, 2, GL_FLOAT, GL_FALSE, 0, gTriangleTexcoords);
+    glEnableVertexAttribArray(gvTexcoordHandle);
+#ifdef CUBIC
+    float uUnit = (float)gTexWidth;
+    float vUnit = (float)gTexHeight;
+    glUniform1f(gUid, uUnit);
+    glUniform1f(gVid, vUnit);
+#endif
+    glUniform1i(gTexSamplerHandle, 0);
+    glBindTexture(GL_TEXTURE_2D, gTex);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glFinish();
+    LOGI("end...");
     /* Draw fonts. */
-    text->draw();
+    //text->draw();
 }
 
 extern "C"
@@ -160,6 +219,6 @@ extern "C"
     JNIEXPORT void JNICALL Java_com_arm_malideveloper_openglessdk_triangle_Triangle_uninit
     (JNIEnv *, jclass)
     {
-        delete text;
+        //delete text;
     }
 }

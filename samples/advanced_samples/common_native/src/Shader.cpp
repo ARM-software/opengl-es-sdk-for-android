@@ -65,7 +65,7 @@ namespace MaliSDK
             LOGE("Log START:\n%s\nLog END\n\n", errorLog);
             free(errorLog);
 
-            LOGE("Compilation FAILED!\n\n");
+            LOGE("Compilation FAILED! %s\n\n", filename);
             exit(1);
         }
     }
