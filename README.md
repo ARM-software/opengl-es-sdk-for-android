@@ -1,3 +1,5 @@
+## This project is not maintained anymore
+
 # OpenGL ES SDK for Android
 
 ![OpenGL ES SDK for Android](https://user-images.githubusercontent.com/11390552/27276063-d0798c42-54d1-11e7-9695-940270e24d11.jpg)
