@@ -1,4 +1,4 @@
-## This project is not maintained anymore
+## NOTE: This project is not maintained anymore
 
 # OpenGL ES SDK for Android
 
