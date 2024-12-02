@@ -92,7 +92,7 @@ static string textString = "";
 
 /* Context related variables. */
 EGLContext mainContext = NULL;
-EGLContext mainDisplay = NULL;
+EGLDisplay mainDisplay = NULL;
 EGLSurface pBufferSurface = NULL;
 EGLContext pBufferContext = NULL;
 
